@@ -136,7 +136,7 @@ export default function EntryDetailPage() {
 
 function toDraft(entry: GateEntryRecord): UpdateGateEntryInput {
   const safetyChecklist: NonNullable<UpdateGateEntryInput["safetyChecklist"]> = {
-    tlfNo: entry.safetyChecklist.tlfNo, accessMethod: entry.safetyChecklist.accessMethod,
+    tlfNo: entry.safetyChecklist.tlfNo ?? undefined, accessMethod: entry.safetyChecklist.accessMethod ?? undefined,
     inspectionArea: entry.safetyChecklist.inspectionArea, sealNumber: entry.safetyChecklist.sealNumber,
     verificationNotes: entry.safetyChecklist.verificationNotes, exceptionRemarks: entry.safetyChecklist.exceptionRemarks,
   };

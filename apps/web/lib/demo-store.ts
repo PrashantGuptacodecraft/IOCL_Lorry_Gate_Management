@@ -79,6 +79,11 @@ const safetyBase = {
   noContainerCanExplosivesInCabin: true,
   vmuWorking: true,
   truckTyreConditionAcceptable: true,
+  batteryCutOffSwitchCondition: true,
+  handBrakeWorking: true,
+  earthCleatProvided: true,
+  tlfNo: "TLF-4001",
+  accessMethod: "GANTRY",
   inspectionArea: "Main gate inspection bay",
   sealNumber: "SEAL-1001",
   verifiedBy: "Rajesh Kumar",
@@ -102,7 +107,7 @@ function serial(index: number) { return `IN-${todayKey().replaceAll("-", "")}-${
 
 function blankExit() {
   return {
-    qtyMs: null, qtyXpms: null, qtyEbms: null, qtyHsd: null,
+    qtyMs: null, qtyXpms: null, qtyEbms: null, qtyHsd: null, qtySko: null, qtyXg: null, qtyBioHsd: null, qtyFo: null, qtyLdo: null, lockNumber: null,
     invoiceNumber: null, invoiceDate: null, invoiceValue: null, invoiceVehicle: null, invoiceConsignee: null, invoiceProductsRaw: null,
     exitCreatedBy: null, isDeleted: false, deletedAt: null, deleteReason: null,
   };

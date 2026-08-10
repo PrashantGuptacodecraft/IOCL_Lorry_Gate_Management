@@ -367,8 +367,8 @@ export interface SafetyChecklistRecord {
   gateEntryId?: string;
   checklistVersion: number;
   drivingLicenseValidCmvRule9: boolean | null;
-  verifyRegisterColumn1: boolean | null;
-  verifyRegisterColumn2: boolean | null;
+  verifyRegisterColumn1?: boolean | null | undefined;
+  verifyRegisterColumn2?: boolean | null | undefined;
   ppeAvailable: boolean | null;
   rubberHoseCumLockCouplingGttMarked: boolean | null;
   sparkArrestorCcoeApproved: boolean | null;
@@ -378,6 +378,11 @@ export interface SafetyChecklistRecord {
   noContainerCanExplosivesInCabin: boolean | null;
   vmuWorking: boolean | null;
   truckTyreConditionAcceptable: boolean | null;
+  batteryCutOffSwitchCondition: boolean | null;
+  handBrakeWorking: boolean | null;
+  earthCleatProvided: boolean | null;
+  tlfNo?: string | null | undefined;
+  accessMethod?: string | null | undefined;
   inspectionArea: string;
   sealNumber: string;
   verifiedBy: string;
@@ -422,6 +427,12 @@ export interface GateEntryRecord {
   qtyXpms: string | null;
   qtyEbms: string | null;
   qtyHsd: string | null;
+  qtySko: string | null;
+  qtyXg: string | null;
+  qtyBioHsd: string | null;
+  qtyFo: string | null;
+  qtyLdo: string | null;
+  lockNumber: string | null;
   invoiceNumber: string | null;
   invoiceDate: string | null;
   invoiceValue: string | null;
