@@ -46,7 +46,8 @@ export default function EntryDetailPage() {
   async function saveQuantities() {
     if (!entry) return;
     const parsed = Object.fromEntries(Object.entries(quantities).map(([key, value]) => [key, key === "lockNumber" ? value : Number(value)])) as any;
-    if (Object.values(parsed).some((value) => !Number.isFinite(value) || value < 0)) return toast.error("Enter valid non-negative quantities");
+    const numericValues = Object.entries(parsed).filter(([key]) => key !== "lockNumber").map(([, value]) => value as number);
+    if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) return toast.error("Enter valid non-negative quantities");
     setSaving(true);
     try { const updated = await updateExitQuantities(entry.id, { expectedVersion: entry.recordVersion, ...parsed }); setEntry(updated); setQuantities(toQuantities(updated)); setEditingQuantities(false); toast.success("OUT quantities corrected and audited"); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Quantity update failed"); }
