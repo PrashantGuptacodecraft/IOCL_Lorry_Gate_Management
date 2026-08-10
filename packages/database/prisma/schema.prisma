@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ENTRY_GATE_SECURITY
+  EXIT_GATE_SECURITY
+  SUPERVISOR
+  ADMIN
+}
+
+enum CrewType {
+  DRIVER
+  DRIVER_WITH_HELPER
+  CONTRACT_CREW
+}
+
+enum EntryStatus {
+  IN
+  OUT
+  CANCELLED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGIN_FAILED
+  TOKEN_REFRESH
+  LOGOUT
+  CREATE
+  UPDATE
+  EXIT
+  EXIT_UPDATE
+  CANCEL
+  DELETE
+  RESTORE
+  BULK_DELETE
+  USER_CREATE
+  USER_UPDATE
+  PASSWORD_RESET
+}
+
+enum QrScanMethod {
+  CAMERA
+  HARDWARE_SCANNER
+  MANUAL
+  DEMO
+}
+
+model User {
+  id                    String          @id @default(uuid()) @db.Uuid
+  employeeCode          String          @unique @db.VarChar(32)
+  name                  String          @db.VarChar(100)
+  passwordHash          String          @db.VarChar(255)
+  role                  UserRole
+  isActive              Boolean         @default(true)
+  failedLoginAttempts   Int             @default(0)
+  lockedUntil           DateTime?
+  authVersion           Int             @default(1)
+  lastLoginAt           DateTime?
+  lastPasswordChangedAt DateTime         @default(now())
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  gateEntries           GateEntry[]      @relation("GateEntryCreatedBy")
+  updatedEntries        GateEntry[]      @relation("GateEntryUpdatedBy")
+  exitedEntries         GateEntry[]      @relation("GateEntryExitedBy")
+  deletedEntries        GateEntry[]      @relation("GateEntryDeletedBy")
+  auditLogs             AuditLog[]
+  securityEvents        SecurityEvent[]
+  refreshTokens         RefreshToken[]
+
+  @@index([role, isActive])
+  @@map("users")
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  tokenHash    String    @unique @db.VarChar(128)
+  userId       String    @db.Uuid
+  sessionId    String    @db.Uuid
+  authVersion  Int
+  expiresAt        DateTime
+  sessionExpiresAt DateTime
+  revokedAt    DateTime?
+  revokeReason String?   @db.VarChar(40)
+  lastUsedAt   DateTime?
+  ipAddress    String?   @db.VarChar(64)
+  userAgent    String?   @db.VarChar(500)
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([sessionId, revokedAt])
+  @@index([sessionId, sessionExpiresAt])
+  @@map("refresh_tokens")
+}
+
+model SecurityEvent {
+  id           String    @id @default(uuid()) @db.Uuid
+  eventType    String    @db.VarChar(50)
+  employeeCode String?   @db.VarChar(32)
+  actorId      String?   @db.Uuid
+  ipAddress    String?   @db.VarChar(64)
+  userAgent    String?   @db.VarChar(500)
+  requestId    String?   @db.VarChar(64)
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+  actor        User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+  @@index([employeeCode, createdAt])
+  @@map("security_events")
+}
+
+model CrewPass {
+  id                       String    @id @default(uuid()) @db.Uuid
+  qrToken                  String    @unique @db.VarChar(500)
+  crewId                   String    @unique @db.VarChar(50)
+  driverName               String    @db.VarChar(120)
+  crewType                 CrewType
+  passValidUntil           DateTime  @db.Date
+  ttNumberOnPass           String    @db.VarChar(20)
+  drivingLicenseNumber     String    @db.VarChar(40)
+  drivingLicenseExpiryDate DateTime  @db.Date
+  isActive                 Boolean   @default(true)
+  sourceSystem             String    @default("DEMO_MASTER") @db.VarChar(60)
+  sourcePayload            Json?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  entries                   GateEntry[]
+
+  @@index([ttNumberOnPass])
+  @@index([passValidUntil, isActive])
+  @@map("crew_passes")
+}
+
+model CustomerDestination {
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @unique @db.VarChar(30)
+  name         String   @db.VarChar(160)
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@map("customer_destinations")
+}
+
+model DailyCounter {
+  businessDate DateTime @id @db.Date
+  lastSerial   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("daily_counters")
+}
+
+model GateEntry {
+  id                       String          @id @default(uuid()) @db.Uuid
+  recordVersion            Int             @default(1)
+  facilityCode             String          @db.VarChar(30)
+  gateCode                 String          @db.VarChar(30)
+  serialNumber             Int
+  businessDate             DateTime        @db.Date
+  entryDate                DateTime        @default(now())
+  timeIn                   DateTime        @default(now())
+  timeOut                  DateTime?
+  status                   EntryStatus     @default(IN)
+  qrScanMethod             QrScanMethod    @default(CAMERA)
+  crewPassId               String          @db.Uuid
+  crewId                   String          @db.VarChar(50)
+  driverName               String          @db.VarChar(120)
+  crewType                 CrewType
+  passValidUntil           DateTime        @db.Date
+  ttNumberOnPass           String          @db.VarChar(20)
+  drivingLicenseNumber     String          @db.VarChar(40)
+  drivingLicenseExpiryDate DateTime        @db.Date
+  customerDestination      String          @db.VarChar(160)
+  actualTankTruckNumber    String          @db.VarChar(20)
+  abs                      Boolean
+  challanNumber            String          @db.VarChar(50)
+  driverPassNumber         String          @db.VarChar(50)
+  driverAbt                Boolean         @default(false)
+  helperName               String?         @db.VarChar(100)
+  helperPassNumber         String?         @db.VarChar(50)
+  helperAbt                Boolean         @default(false)
+  mobileTokenNumber        String          @db.VarChar(40)
+  driverSignatureConfirmed Boolean         @default(false)
+  remarks                  String?         @db.VarChar(500)
+  ttNumberMatch            Boolean
+  qtyMs                    Decimal?        @db.Decimal(14, 3)
+  qtyXpms                  Decimal?        @db.Decimal(14, 3)
+  qtyEbms                  Decimal?        @db.Decimal(14, 3)
+  qtyHsd                   Decimal?        @db.Decimal(14, 3)
+  qtySko                   Decimal?        @db.Decimal(14, 3)
+  qtyXg                    Decimal?        @db.Decimal(14, 3)
+  qtyBioHsd                Decimal?        @db.Decimal(14, 3)
+  qtyFo                    Decimal?        @db.Decimal(14, 3)
+  qtyLdo                   Decimal?        @db.Decimal(14, 3)
+  lockNumber               String?         @db.VarChar(50)
+  invoiceNumber            String?         @unique @db.VarChar(60)
+  invoiceDate              DateTime?       @db.Date
+  invoiceValue             Decimal?        @db.Decimal(16, 2)
+  invoiceVehicle           String?         @db.VarChar(20)
+  invoiceConsignee         String?         @db.VarChar(200)
+  invoiceProductsRaw       String?         @db.VarChar(1000)
+  createdById              String          @db.Uuid
+  updatedById              String?         @db.Uuid
+  exitCreatedById          String?         @db.Uuid
+  isDeleted                Boolean         @default(false)
+  deletedAt                DateTime?
+  deletedById              String?         @db.Uuid
+  deleteReason             String?         @db.VarChar(300)
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+  crewPass                 CrewPass        @relation(fields: [crewPassId], references: [id], onDelete: Restrict)
+  createdBy                User            @relation("GateEntryCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy                User?           @relation("GateEntryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  exitCreatedBy            User?           @relation("GateEntryExitedBy", fields: [exitCreatedById], references: [id], onDelete: SetNull)
+  deletedBy                User?           @relation("GateEntryDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  safetyChecklist          SafetyChecklist?
+
+  @@unique([businessDate, serialNumber], map: "gate_entries_business_date_serial_key")
+  // Active-record uniqueness is enforced by a partial PostgreSQL index in migrations.
+  @@index([businessDate, mobileTokenNumber, isDeleted])
+  @@unique([id, recordVersion], map: "gate_entries_id_version_key")
+  @@index([businessDate, isDeleted, status, timeIn])
+  @@index([actualTankTruckNumber, isDeleted, status])
+  @@index([exitCreatedById, businessDate])
+  @@index([driverName])
+  @@index([crewId])
+  @@map("gate_entries")
+}
+
+model SafetyChecklist {
+  id                                  String    @id @default(uuid()) @db.Uuid
+  gateEntryId                         String    @unique @db.Uuid
+  checklistVersion                    Int       @default(2)
+  tlfNo                               String?   @db.VarChar(50)
+  accessMethod                        String?   @db.VarChar(50)
+  drivingLicenseValidCmvRule9         Boolean?
+  verifyRegisterColumn1               Boolean?
+  verifyRegisterColumn2               Boolean?
+  ppeAvailable                        Boolean?
+  rubberHoseCumLockCouplingGttMarked  Boolean?
+  sparkArrestorCcoeApproved           Boolean?
+  tremCardAndTrainingCardAvailable    Boolean?
+  selfStarterWorking                  Boolean?
+  batteryTerminalRubberCovers         Boolean?
+  noContainerCanExplosivesInCabin     Boolean?
+  vmuWorking                          Boolean?
+  truckTyreConditionAcceptable        Boolean?
+  batteryCutOffSwitchCondition        Boolean?
+  handBrakeWorking                    Boolean?
+  earthCleatProvided                  Boolean?
+  inspectionArea                      String    @db.VarChar(100)
+  sealNumber                          String    @db.VarChar(80)
+  verifiedBy                          String    @db.VarChar(100)
+  verificationNotes                   String    @db.VarChar(500)
+  exceptionRemarks                    String?   @db.VarChar(500)
+  createdAt                           DateTime  @default(now())
+  updatedAt                           DateTime  @updatedAt
+  gateEntry                           GateEntry @relation(fields: [gateEntryId], references: [id], onDelete: Cascade)
+
+  @@map("safety_checklists")
+}
+
+model AuditLog {
+  id            String      @id @default(uuid()) @db.Uuid
+  actorId       String      @db.Uuid
+  actorRole     UserRole
+  entityType    String      @db.VarChar(50)
+  entityId      String?     @db.VarChar(80)
+  action        AuditAction
+  changedFields Json?
+  beforeData    Json?
+  afterData     Json?
+  ipAddress     String?     @db.VarChar(64)
+  userAgent     String?     @db.VarChar(500)
+  requestId     String?     @db.VarChar(64)
+  createdAt     DateTime    @default(now())
+  actor         User        @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([actorRole, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

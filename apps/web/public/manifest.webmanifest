@@ -1,0 +1,22 @@
+{
+  "id": "/dashboard",
+  "name": "IOCL Lorry Gate Management — IN Gate",
+  "short_name": "IOCL IN Gate",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#F6F8FC",
+  "theme_color": "#0B1B4D",
+  "description": "Tablet-first lorry gate entry, QR verification and safety-check workflow.",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New IN Entry", "short_name": "New Entry", "url": "/entries/new", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Today's Records", "short_name": "Records", "url": "/entries", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

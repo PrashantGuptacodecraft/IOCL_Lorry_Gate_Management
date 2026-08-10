@@ -1,0 +1,11 @@
+[Unit]
+Description=Run IOCL Lorry Gate backup daily
+
+[Timer]
+OnCalendar=*-*-* 01:15:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=iocl-gate-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,4 @@
+"use client";
+export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <html lang="en"><body><main style={{minHeight:"100vh",display:"grid",placeItems:"center",fontFamily:"Arial",background:"#f6f8fc",padding:24}}><section style={{maxWidth:520,textAlign:"center",background:"white",borderRadius:24,padding:32,boxShadow:"0 12px 35px rgba(15,23,42,.12)"}}><h1 style={{color:"#12395b"}}>System page unavailable</h1><p style={{color:"#64748b",lineHeight:1.6}}>Reload the application. If this continues, contact the terminal administrator.</p><button type="button" onClick={reset} style={{border:0,borderRadius:14,padding:"12px 20px",fontWeight:700,color:"white",background:"#f36f21",cursor:"pointer"}}>Reload Application</button></section></main></body></html>;
+}

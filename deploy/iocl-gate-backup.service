@@ -1,0 +1,23 @@
+[Unit]
+Description=IOCL Lorry Gate PostgreSQL backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=iocl-gate
+Group=iocl-gate
+EnvironmentFile=/etc/iocl-gate/backup.env
+WorkingDirectory=/opt/iocl-gate
+ExecStart=/opt/iocl-gate/scripts/backup-postgres.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/iocl-gate
+
+[Install]
+WantedBy=multi-user.target

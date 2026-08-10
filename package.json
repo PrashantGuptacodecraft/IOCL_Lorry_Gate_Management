@@ -1,0 +1,36 @@
+{
+  "name": "iocl-lorry-gate-management",
+  "private": true,
+  "version": "2.0.0",
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n WEB,API -c cyan,magenta \"npm run dev -w @iocl/web\" \"npm run dev -w @iocl/api\"",
+    "dev:web": "npm run dev -w @iocl/web",
+    "dev:api": "npm run dev -w @iocl/api",
+    "build": "npm run db:generate && npm run build -w @iocl/shared && npm run build -w @iocl/api && npm run build -w @iocl/web",
+    "lint": "npm run lint -w @iocl/api && npm run lint -w @iocl/web",
+    "typecheck": "npm run typecheck -w @iocl/shared && npm run typecheck -w @iocl/api && npm run typecheck -w @iocl/web",
+    "db:generate": "npm run prisma:generate -w @iocl/database",
+    "db:migrate": "npm run prisma:migrate -w @iocl/database",
+    "db:seed": "npm run prisma:seed -w @iocl/database",
+    "db:studio": "npm run prisma:studio -w @iocl/database",
+    "setup": "npm install && npm run db:generate && npm run db:migrate && npm run db:seed",
+    "test": "npm run test -w @iocl/shared && npm run test -w @iocl/api",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "db:provision-user": "npm run prisma:provision-user -w @iocl/database",
+    "db:seed:demo": "npm run prisma:seed -w @iocl/database",
+    "postinstall": "npm run db:generate && npm run build -w @iocl/shared"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.0",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}
