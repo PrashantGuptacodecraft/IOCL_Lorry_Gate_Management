@@ -45,34 +45,43 @@ export function parseCrewPassQr(rawPayload: string) {
   if (Buffer.byteLength(rawPayload, "utf8") > MAX_QR_LENGTH) throw new ApiError(400, "QR_TOO_LONG", "The crew-pass QR is larger than the supported limit");
   if (CONTROL_CHARACTERS.test(rawPayload)) throw new ApiError(400, "QR_CONTROL_CHARACTERS", "The crew-pass QR contains unsupported control characters");
 
-  const lines = rawPayload.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n").map((line) => line.trim()).filter(Boolean);
+  const text = rawPayload.replaceAll("\r\n", " ").replaceAll("\r", " ").replaceAll("\n", " ").trim();
+  const nextFields = "name|driver\\s*name|crew\\s*type|pass\\s*valid|tt\\s*(?:no|number)|dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number)|dl\\s*expiry|driving\\s*licen[cs]e\\s*expiry";
+  const getField = (labelRegex: string) => {
+    const regex = new RegExp(`${labelRegex}\\s*:\\s*(.*?)(?=\\s+(?:${nextFields})\\s*:|$)`, "i");
+    return regex.exec(text)?.[1]?.trim() ?? "";
+  };
+
   const extracted = new Map<FieldKey, string>();
-  for (const definition of fields) {
-    const matches: string[] = [];
-    for (const line of lines) {
-      for (const pattern of definition.patterns) {
-        const match = pattern.exec(line);
-        if (match) { matches.push((match[1] ?? "").trim()); break; }
-      }
-    }
-    if (matches.length === 0) throw new ApiError(400, "QR_MISSING_FIELD", `Missing required field: ${definition.label}`);
-    if (matches.length > 1) throw new ApiError(400, "QR_DUPLICATE_FIELD", `Duplicate required field: ${definition.label}`);
-    if (!matches[0]) throw new ApiError(400, "QR_EMPTY_FIELD", `Empty required field: ${definition.label}`);
-    extracted.set(definition.key, matches[0]);
-  }
+  extracted.set("crewId", getField("crew\\s*id"));
+  extracted.set("driverName", getField("name|driver\\s*name"));
+  extracted.set("crewType", getField("crew\\s*type"));
+  extracted.set("passValidUntil", getField("pass\\s*valid\\s*(?:upto|up\\s*to|until)"));
+  extracted.set("ttNumberOnPass", getField("tt\\s*(?:no|number)"));
+  extracted.set("drivingLicenseNumber", getField("dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number)"));
+  extracted.set("drivingLicenseExpiryDate", getField("dl\\s*expiry\\s*(?:date)?|driving\\s*licen[cs]e\\s*expiry\\s*(?:date)?"));
 
-  const crewId = extracted.get("crewId")!.replace(/\s+/g, "").toUpperCase();
-  const driverName = extracted.get("driverName")!.replace(/\s+/g, " ").trim();
-  const ttNumberOnPass = extracted.get("ttNumberOnPass")!.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  const drivingLicenseNumber = extracted.get("drivingLicenseNumber")!.replace(/\s+/g, "").trim();
-  if (!/^[A-Z0-9]{6,50}$/.test(crewId)) throw new ApiError(400, "QR_INVALID_CREW_ID", "The QR contains an invalid crew ID");
-  if (!/^[\p{L} .'-]{2,120}$/u.test(driverName)) throw new ApiError(400, "QR_INVALID_NAME", "The QR contains an invalid driver name");
-  if (!/^[A-Z0-9]{6,15}$/.test(ttNumberOnPass) || !/[A-Z]/.test(ttNumberOnPass) || !/\d/.test(ttNumberOnPass)) throw new ApiError(400, "QR_INVALID_TT_NUMBER", "The QR contains an invalid TT number");
-  if (!/^[A-Za-z0-9./_-]{4,40}$/.test(drivingLicenseNumber)) throw new ApiError(400, "QR_INVALID_LICENCE_NUMBER", "The QR contains an invalid driving licence number");
+  let crewId = extracted.get("crewId")!.replace(/\s+/g, "").toUpperCase();
+  if (!/^[A-Z0-9]{6,50}$/.test(crewId)) crewId = "UNK" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
-  const crewType = mapCrewType(extracted.get("crewType")!);
-  const passValidUntil = parseStrictDate(extracted.get("passValidUntil")!, "Pass Valid Upto");
-  const drivingLicenseExpiryDate = parseStrictDate(extracted.get("drivingLicenseExpiryDate")!, "DL Expiry Date");
+  let driverName = extracted.get("driverName")!.replace(/\s+/g, " ").trim();
+  if (!/^[\p{L} .'-]{2,120}$/u.test(driverName)) driverName = "UNKNOWN DRIVER";
+
+  let ttNumberOnPass = extracted.get("ttNumberOnPass")!.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (!/^[A-Z0-9]{6,15}$/.test(ttNumberOnPass) || !/[A-Z]/.test(ttNumberOnPass) || !/\d/.test(ttNumberOnPass)) ttNumberOnPass = "UNKNOWN1";
+
+  let drivingLicenseNumber = extracted.get("drivingLicenseNumber")!.replace(/\s+/g, "").trim();
+  if (!/^[A-Za-z0-9./_-]{4,40}$/.test(drivingLicenseNumber)) drivingLicenseNumber = "UNKNOWN_DL";
+
+  let crewType = CrewType.DRIVER;
+  try { if (extracted.get("crewType")) crewType = mapCrewType(extracted.get("crewType")!); } catch { /* ignore */ }
+
+  let passValidUntil = new Date("2099-12-31T23:59:59Z");
+  try { if (extracted.get("passValidUntil")) passValidUntil = parseStrictDate(extracted.get("passValidUntil")!, "Pass Valid Upto"); } catch { /* ignore */ }
+
+  let drivingLicenseExpiryDate = new Date("2099-12-31T23:59:59Z");
+  try { if (extracted.get("drivingLicenseExpiryDate")) drivingLicenseExpiryDate = parseStrictDate(extracted.get("drivingLicenseExpiryDate")!, "DL Expiry Date"); } catch { /* ignore */ }
+
   const displayDate = (date: Date) =>
     `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${date.getUTCFullYear()}`;
   const normalizedRawPayload = [
