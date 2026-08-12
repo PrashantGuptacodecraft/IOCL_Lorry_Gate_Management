@@ -216,8 +216,9 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
         select: { serialNumber: true, businessDate: true },
       }),
       tx.gateEntry.findFirst({
-        where: { crewPassId: pass.id, status: EntryStatus.IN, isDeleted: false, businessDate },
-        select: { serialNumber: true, businessDate: true },
+        // Block re-entry for the ENTIRE business day — regardless of check-out status
+        where: { crewPassId: pass.id, isDeleted: false, businessDate },
+        select: { serialNumber: true, businessDate: true, status: true },
       }),
       tx.gateEntry.findFirst({
         where: { businessDate, mobileTokenNumber, isDeleted: false },
@@ -228,7 +229,8 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
       throw new ApiError(409, "TRUCK_ALREADY_IN", `Truck already entered under ${formatDisplaySerial(openEntry.businessDate, openEntry.serialNumber)}`);
     }
     if (openCrewEntry) {
-      throw new ApiError(409, "CREW_ALREADY_IN", `This crew pass is already active under ${formatDisplaySerial(openCrewEntry.businessDate, openCrewEntry.serialNumber)}`);
+      const alreadyOut = openCrewEntry.status === "OUT";
+      throw new ApiError(409, "CREW_ALREADY_IN", `This crew pass has already been used today under ${formatDisplaySerial(openCrewEntry.businessDate, openCrewEntry.serialNumber)}${alreadyOut ? " (checked out)" : ""}. One entry per pass per day is allowed.`);
     }
     if (tokenUsed) throw new ApiError(409, "DUPLICATE_MOBILE_TOKEN", "This mobile token number is already used today");
 

@@ -73,7 +73,7 @@ export function parseCrewPassQr(rawPayload: string) {
   let drivingLicenseNumber = extracted.get("drivingLicenseNumber")!.replace(/\s+/g, "").trim();
   if (!/^[A-Za-z0-9./_-]{4,40}$/.test(drivingLicenseNumber)) drivingLicenseNumber = "UNKNOWN_DL";
 
-  let crewType = CrewType.DRIVER;
+  let crewType: CrewType = CrewType.DRIVER;
   try { if (extracted.get("crewType")) crewType = mapCrewType(extracted.get("crewType")!); } catch { /* ignore */ }
 
   let passValidUntil = new Date("2099-12-31T23:59:59Z");
