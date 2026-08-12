@@ -31,7 +31,6 @@ const defaultValues: CreateGateEntryInput = {
   customerDestination: "",
   actualTankTruckNumber: "",
   abs: unsetBoolean,
-  challanNumber: "",
   driverPassNumber: "",
   driverAbt: unsetBoolean,
   helperName: "",
@@ -43,7 +42,6 @@ const defaultValues: CreateGateEntryInput = {
   safetyChecklist: {
     drivingLicenseValidCmvRule9: unsetBoolean,
     verifyRegisterColumn1: unsetBoolean,
-    verifyRegisterColumn2: unsetBoolean,
     ppeAvailable: unsetBoolean,
     rubberHoseCumLockCouplingGttMarked: unsetBoolean,
     sparkArrestorCcoeApproved: unsetBoolean,
@@ -52,7 +50,6 @@ const defaultValues: CreateGateEntryInput = {
     batteryTerminalRubberCovers: unsetBoolean,
     noContainerCanExplosivesInCabin: unsetBoolean,
     vmuWorking: unsetBoolean,
-    truckTyreConditionAcceptable: unsetBoolean,
     batteryCutOffSwitchCondition: unsetBoolean,
     handBrakeWorking: unsetBoolean,
     earthCleatProvided: unsetBoolean,
@@ -125,7 +122,7 @@ export function EntryWizard() {
       return;
     }
     const fieldsByStep: Record<number, FieldPath<CreateGateEntryInput>[]> = {
-      1: ["customerDestination", "actualTankTruckNumber", "abs", "challanNumber", "driverPassNumber", "driverAbt", "helperName", "helperPassNumber", "helperAbt", "mobileTokenNumber", "driverSignatureConfirmed", "remarks"],
+      1: ["customerDestination", "actualTankTruckNumber", "abs", "driverPassNumber", "driverAbt", "helperName", "helperPassNumber", "helperAbt", "mobileTokenNumber", "driverSignatureConfirmed", "remarks"],
       2: IN_GATE_SAFETY_ITEMS.map(({ key }) => `safetyChecklist.${key}` as FieldPath<CreateGateEntryInput>).concat([
         "safetyChecklist.tlfNo", "safetyChecklist.accessMethod", "safetyChecklist.inspectionArea", "safetyChecklist.sealNumber", "safetyChecklist.verifiedBy", "safetyChecklist.verificationNotes", "safetyChecklist.exceptionRemarks",
       ]),
@@ -207,7 +204,7 @@ export function EntryWizard() {
             <Field label="Actual Physical Tank Truck Number" error={errors.actualTankTruckNumber?.message}><input {...register("actualTankTruckNumber")} className="field-input font-black uppercase tracking-wider" placeholder="TN74AZ8730" /></Field>
             <div><label className="field-label">TT Number Match (automatic)</label><div className={`flex min-h-13 items-center justify-between rounded-2xl border px-4 ${ttMatch ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}><div><p className={`text-sm font-black ${ttMatch ? "text-emerald-800" : "text-red-800"}`}>{ttMatch ? "YES — Numbers match" : "NO — Mismatch detected"}</p><p className="text-[11px] text-slate-500">TT on pass: {pass?.ttNumberOnPass}</p></div><Badge tone={ttMatch ? "green" : "red"}>{ttMatch ? "Verified" : "Alert"}</Badge></div></div>
             <ToggleField label="ABS" value={typeof values.abs === "boolean" ? values.abs : undefined} error={errors.abs?.message} onChange={(value) => setValue("abs", value, { shouldValidate: true })} />
-            <Field label="Challan Number" error={errors.challanNumber?.message}><input {...register("challanNumber")} className="field-input uppercase" placeholder="CH-482901" /></Field>
+
             <Field label="Driver Pass Number" error={errors.driverPassNumber?.message}><input {...register("driverPassNumber")} className="field-input uppercase" placeholder="DP-7412" /></Field>
             <ToggleField label="ABT — Driver" value={typeof values.driverAbt === "boolean" ? values.driverAbt : undefined} error={errors.driverAbt?.message} onChange={(value) => setValue("driverAbt", value, { shouldValidate: true })} />
             <Field label="Mobile Token Number" error={errors.mobileTokenNumber?.message}><input {...register("mobileTokenNumber")} className="field-input uppercase" placeholder="MT-1003" /></Field>
@@ -246,7 +243,7 @@ export function EntryWizard() {
           {step === 3 && pass ? <div className="space-y-5">
             {documentWarnings.length ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p className="font-black">Document warning</p>{documentWarnings.map((warning) => <p key={warning} className="mt-1">• {warning}</p>)}{documentsExpired ? <p className="mt-2 text-xs">Production IN submission is blocked for expired documents; the scanned values remain visible for verification and audit.</p> : null}</div> : null}
             <ReviewSection title="Verified crew pass" icon={<UserRound className="h-5 w-5" />} items={[["Crew ID", pass.crewId], ["Driver", pass.driverName], ["Crew Type", pass.crewType.replaceAll("_", " ")], ["Pass Valid Until", formatIndiaDate(pass.passValidUntil)], ["Driving Licence", pass.drivingLicenseNumber], ["Licence Expiry", formatIndiaDate(pass.drivingLicenseExpiryDate)]]} />
-            <ReviewSection title="Vehicle and entry details" icon={<Truck className="h-5 w-5" />} items={[["Actual TT Number", values.actualTankTruckNumber], ["TT on Pass", pass.ttNumberOnPass], ["TT Match", ttMatch ? "YES" : "NO — MISMATCH"], ["Customer / Destination", values.customerDestination], ["ABS", values.abs ? "YES" : "NO"], ["Challan", values.challanNumber], ["Driver Pass", values.driverPassNumber], ["Driver ABT", values.driverAbt ? "YES" : "NO"], ["Helper", values.helperName || "Not provided"], ["Helper ABT", values.helperAbt ? "YES" : "NO"], ["Mobile Token", values.mobileTokenNumber], ["Driver Confirmation", values.driverSignatureConfirmed ? "CONFIRMED" : "NOT CONFIRMED"], ["Remarks", values.remarks || "—"]]} />
+            <ReviewSection title="Vehicle and entry details" icon={<Truck className="h-5 w-5" />} items={[["Actual TT Number", values.actualTankTruckNumber], ["TT on Pass", pass.ttNumberOnPass], ["TT Match", ttMatch ? "YES" : "NO — MISMATCH"], ["Customer / Destination", values.customerDestination], ["ABS", values.abs ? "YES" : "NO"], ["Driver Pass", values.driverPassNumber], ["Driver ABT", values.driverAbt ? "YES" : "NO"], ["Helper", values.helperName || "Not provided"], ["Helper ABT", values.helperAbt ? "YES" : "NO"], ["Mobile Token", values.mobileTokenNumber], ["Driver Confirmation", values.driverSignatureConfirmed ? "CONFIRMED" : "NOT CONFIRMED"], ["Remarks", values.remarks || "—"]]} />
             <ReviewSection title="Safety verification" icon={<ShieldCheck className="h-5 w-5" />} items={[["Answered", `${completedSafety} of ${totalSafetyItems}`], ["Checks Passed", `${totalSafetyItems - failedSafety.length} of ${totalSafetyItems}`], ["Failed Checks", failedSafety.length ? failedSafety.map((item) => item.label).join(", ") : "None"], ["TLF No", values.safetyChecklist.tlfNo || "Not provided"], ["Access Method", values.safetyChecklist.accessMethod || "Not provided"], ["Inspection Area", values.safetyChecklist.inspectionArea], ["Seal Number", values.safetyChecklist.sealNumber], ["Verified By", values.safetyChecklist.verifiedBy], ["Verification Notes", values.safetyChecklist.verificationNotes], ["Exceptions", values.safetyChecklist.exceptionRemarks || "No exception recorded"]]} />
             <div className="flex gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900"><FileText className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-black">Submission creates an auditable IN record</p><p className="mt-1 text-xs leading-5 text-orange-700">Serial number, entry date, time and status are generated by the server. QR-sourced fields remain immutable.</p></div></div>
           </div> : null}

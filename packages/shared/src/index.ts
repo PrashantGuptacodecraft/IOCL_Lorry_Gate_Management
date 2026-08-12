@@ -105,21 +105,19 @@ export type CrewPass = z.infer<typeof crewPassSchema>;
 const yesNo = z.boolean({ error: "Select Yes or No" });
 
 export const IN_GATE_SAFETY_ITEMS = [
-  { key: "drivingLicenseValidCmvRule9", label: "Driving License valid as per CMV Rule 9", order: 1 },
-  { key: "verifyRegisterColumn1", label: "Verify Register Column (1)", order: 2 },
-  { key: "verifyRegisterColumn2", label: "Verify Register Column (2)", order: 3 },
-  { key: "ppeAvailable", label: "PPE", order: 4 },
-  { key: "rubberHoseCumLockCouplingGttMarked", label: "Rubber Hose Cum Lock Coupling GTT No. Marked", order: 5 },
-  { key: "sparkArrestorCcoeApproved", label: "Spark Arrestor Approved by CCOE", order: 6 },
-  { key: "tremCardAndTrainingCardAvailable", label: "TREM Card & Training Card", order: 7 },
-  { key: "selfStarterWorking", label: "Self Starter Working", order: 8 },
-  { key: "batteryTerminalRubberCovers", label: "Rubber Cover on Battery Terminals", order: 9 },
-  { key: "noContainerCanExplosivesInCabin", label: "No Container, Can, or Explosives in TT Cabin", order: 10 },
-  { key: "vmuWorking", label: "VMU Working", order: 11 },
-  { key: "truckTyreConditionAcceptable", label: "Truck Tyre Condition", order: 12 },
-  { key: "batteryCutOffSwitchCondition", label: "Condition of Battery Cut off Switch", order: 13 },
-  { key: "handBrakeWorking", label: "Hand Break working", order: 14 },
-  { key: "earthCleatProvided", label: "Earth Cleat Provided", order: 15 },
+  { key: "verifyRegisterColumn1", label: "ISI Marked DCP FE Available (1x10 kg DCP & 1x2kg CO2 or 1x2 kg Stored pressure Type DCP or 2x10 kg DCPs)" },
+  { key: "drivingLicenseValidCmvRule9", label: "Driving License is endorsed as per CMV Rule 9 (Driving Hazardous Goods Carrying Vehicle)" },
+  { key: "ppeAvailable", label: "Wearing of PPEs by TT Crew (Safety Shoe, Helmet)" },
+  { key: "rubberHoseCumLockCouplingGttMarked", label: "Rubber Hose with Cam-Lock Coupling on both ends & TT No marked on Hose" },
+  { key: "sparkArrestorCcoeApproved", label: "CCOE approved Spark Arrester welded in the exhaust pipe" },
+  { key: "tremCardAndTrainingCardAvailable", label: "TERM Card and Crew Training Card available" },
+  { key: "selfStarterWorking", label: "Self Starter Working" },
+  { key: "batteryTerminalRubberCovers", label: "Rubber Cover Provided for Battery Terminal" },
+  { key: "noContainerCanExplosivesInCabin", label: "No Container / Can in TT's Cabin" },
+  { key: "batteryCutOffSwitchCondition", label: "Condition of Battery Cut off Switch" },
+  { key: "handBrakeWorking", label: "Hand Break working" },
+  { key: "earthCleatProvided", label: "Earth Cleat Provided" },
+  { key: "vmuWorking", label: "VMU Status Switch OFF" },
 ] as const;
 export type SafetyCheckKey = (typeof IN_GATE_SAFETY_ITEMS)[number]["key"];
 
@@ -137,7 +135,7 @@ export const safetyChecklistBase = z.object({
   batteryTerminalRubberCovers: yesNo,
   noContainerCanExplosivesInCabin: yesNo,
   vmuWorking: yesNo,
-  truckTyreConditionAcceptable: yesNo,
+  truckTyreConditionAcceptable: yesNo.optional(),
   batteryCutOffSwitchCondition: yesNo,
   handBrakeWorking: yesNo,
   earthCleatProvided: yesNo,
@@ -186,7 +184,7 @@ export const createGateEntrySchema = z.object({
   customerDestination: cleanText(2, 160, "Customer / destination is required"),
   actualTankTruckNumber: truckNumber,
   abs: yesNo,
-  challanNumber: operationalIdentifier(2, 50, "Challan number is required"),
+  challanNumber: z.string().default("-"),
   driverPassNumber: operationalIdentifier(2, 50, "Driver pass number is required"),
   driverAbt: yesNo,
   helperName: optionalText(100),
@@ -210,7 +208,7 @@ export const editableGateEntrySchema = z.object({
   customerDestination: cleanText(2, 160, "Customer / destination is required").optional(),
   actualTankTruckNumber: truckNumber.optional(),
   abs: yesNo.optional(),
-  challanNumber: operationalIdentifier(2, 50, "Challan number is required").optional(),
+  challanNumber: z.string().optional(),
   driverPassNumber: operationalIdentifier(2, 50, "Driver pass number is required").optional(),
   driverAbt: yesNo.optional(),
   helperName: z.string().trim().max(100).optional(),
@@ -377,7 +375,7 @@ export interface SafetyChecklistRecord {
   batteryTerminalRubberCovers: boolean | null;
   noContainerCanExplosivesInCabin: boolean | null;
   vmuWorking: boolean | null;
-  truckTyreConditionAcceptable: boolean | null;
+  truckTyreConditionAcceptable?: boolean | null | undefined;
   batteryCutOffSwitchCondition: boolean | null;
   handBrakeWorking: boolean | null;
   earthCleatProvided: boolean | null;
