@@ -205,7 +205,7 @@ export function createDemoEntry(input: CreateGateEntryInput) {
   if (!pass) throw new Error("Scan a supported demo crew pass");
   const entries = getDemoEntries();
   const truck = normalizeTruck(input.actualTankTruckNumber);
-  const token = input.mobileTokenNumber.replace(/\s+/g, "").toUpperCase();
+  const token = (input.mobileTokenNumber ?? "-").replace(/\s+/g, "").toUpperCase();
   const today = `${todayKey()}T00:00:00.000Z`;
   if (pass.passValidUntil < today) throw new Error("Crew pass has expired");
   if (pass.drivingLicenseExpiryDate < today) throw new Error("Driving licence has expired");
@@ -221,11 +221,11 @@ export function createDemoEntry(input: CreateGateEntryInput) {
     qrScanMethod: input.qrScanMethod ?? "MANUAL", crewId: pass.crewId, driverName: pass.driverName, crewType: pass.crewType,
     passValidUntil: pass.passValidUntil, ttNumberOnPass: pass.ttNumberOnPass, drivingLicenseNumber: pass.drivingLicenseNumber,
     drivingLicenseExpiryDate: pass.drivingLicenseExpiryDate, customerDestination: input.customerDestination,
-    actualTankTruckNumber: truck, abs: input.abs, challanNumber: input.challanNumber ?? "-", driverPassNumber: input.driverPassNumber,
-    driverAbt: input.driverAbt, helperName: input.helperName || null, helperPassNumber: input.helperPassNumber || null,
-    helperAbt: input.helperAbt, mobileTokenNumber: token, driverSignatureConfirmed: input.driverSignatureConfirmed === true,
+    actualTankTruckNumber: truck, abs: input.abs, challanNumber: input.challanNumber ?? "-", driverPassNumber: input.driverPassNumber ?? "-",
+    driverAbt: input.driverAbt ?? false, helperName: input.helperName || null, helperPassNumber: input.helperPassNumber || null,
+    helperAbt: input.helperAbt ?? false, mobileTokenNumber: token, driverSignatureConfirmed: input.driverSignatureConfirmed === true,
     remarks: input.remarks || null, ttNumberMatch: normalizeTruck(pass.ttNumberOnPass) === truck,
-    safetyChecklist: { checklistVersion: 2, ...input.safetyChecklist, verifiedBy: demoUser.name, exceptionRemarks: input.safetyChecklist.exceptionRemarks ?? "" },
+    safetyChecklist: { checklistVersion: 2, ...input.safetyChecklist, inspectionArea: input.safetyChecklist.inspectionArea ?? "-", sealNumber: input.safetyChecklist.sealNumber ?? "-", verifiedBy: demoUser.name, verificationNotes: input.safetyChecklist.verificationNotes ?? "-", exceptionRemarks: input.safetyChecklist.exceptionRemarks ?? "" },
     createdBy: demoUser, createdAt: now, updatedAt: now, ...blankExit(),
   };
   write(ENTRY_KEY, [entry, ...entries]);

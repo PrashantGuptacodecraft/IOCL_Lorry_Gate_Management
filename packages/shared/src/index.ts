@@ -139,10 +139,10 @@ export const safetyChecklistBase = z.object({
   batteryCutOffSwitchCondition: yesNo,
   handBrakeWorking: yesNo,
   earthCleatProvided: yesNo,
-  inspectionArea: cleanText(2, 100, "Inspection area is required"),
-  sealNumber: cleanText(2, 80, "Seal number is required"),
-  verifiedBy: cleanText(2, 100, "Verifier name is required"),
-  verificationNotes: cleanText(3, 500, "Verification notes are required"),
+  inspectionArea: z.string().trim().max(100).default("-"),
+  sealNumber: z.string().trim().max(80).default("-"),
+  verifiedBy: z.string().trim().max(100).default("-"),
+  verificationNotes: z.string().trim().max(500).default("-"),
   exceptionRemarks: optionalText(500),
 }).strict();
 
@@ -185,8 +185,8 @@ export const createGateEntrySchema = z.object({
   actualTankTruckNumber: truckNumber,
   abs: yesNo,
   challanNumber: z.string().default("-"),
-  driverPassNumber: operationalIdentifier(2, 50, "Driver pass number is required"),
-  driverAbt: yesNo,
+  driverPassNumber: z.string().trim().max(50).default("-"),
+  driverAbt: z.boolean().default(false),
   helperName: optionalText(100),
   helperPassNumber: z
     .string()
@@ -195,8 +195,8 @@ export const createGateEntrySchema = z.object({
     .default("")
     .transform((value) => value.replace(/\s+/g, "").toUpperCase())
     .refine((value) => value === "" || /^[A-Z0-9._\/-]+$/.test(value), "Helper pass number contains unsupported characters"),
-  helperAbt: yesNo,
-  mobileTokenNumber: operationalIdentifier(3, 40, "Mobile token is required"),
+  helperAbt: z.boolean().default(false),
+  mobileTokenNumber: z.string().trim().max(40).default("-"),
   driverSignatureConfirmed: z.literal(true, { error: "Driver confirmation is required" }),
   remarks: optionalText(500),
   safetyChecklist: safetyChecklistSchema,
@@ -381,10 +381,10 @@ export interface SafetyChecklistRecord {
   earthCleatProvided: boolean | null;
   tlfNo?: string | null | undefined;
   accessMethod?: string | null | undefined;
-  inspectionArea: string;
-  sealNumber: string;
-  verifiedBy: string;
-  verificationNotes: string;
+  inspectionArea?: string | null | undefined;
+  sealNumber?: string | null | undefined;
+  verifiedBy?: string | null | undefined;
+  verificationNotes?: string | null | undefined;
   exceptionRemarks: string;
 }
 
