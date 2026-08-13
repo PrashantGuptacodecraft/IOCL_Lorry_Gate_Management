@@ -544,7 +544,9 @@ export async function updateExitQuantities(id: string, input: UpdateExitQuantiti
     const before = await tx.gateEntry.findUnique({ where: { id }, include: includeEntry });
     if (!before || before.isDeleted) throw new ApiError(404, "ENTRY_NOT_FOUND", "Gate entry was not found");
     if (actor.role === UserRole.EXIT_GATE_SECURITY) {
-      throw new ApiError(403, "FORBIDDEN", "Exit security cannot edit records after submission. Contact an administrator.");
+      if (before.exitCreatedById !== actor.userId || before.businessDate.getTime() !== getBusinessDate().getTime()) {
+        throw new ApiError(403, "FORBIDDEN", "Exit security can only edit OUT quantities for vehicles they processed today. Contact an administrator.");
+      }
     }
     if (before.status !== EntryStatus.OUT) throw new ApiError(409, "EXIT_NOT_COMPLETED", "Only completed OUT entries can have exit quantities corrected");
     if (actor.role === UserRole.ENTRY_GATE_SECURITY) throw new ApiError(403, "FORBIDDEN", "Entry security cannot edit OUT quantities");

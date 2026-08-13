@@ -297,7 +297,7 @@ gateEntryRouter.post(
 
 gateEntryRouter.patch(
   "/:id/exit-quantities",
-  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
+  authorize(UserRole.EXIT_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
   validateParams(idParams),
   validateBody(updateExitQuantitiesSchema),
   asyncHandler(async (req, res) => {
