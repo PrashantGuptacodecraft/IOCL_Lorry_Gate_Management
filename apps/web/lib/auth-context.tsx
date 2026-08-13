@@ -18,6 +18,7 @@ const LAST_ACTIVITY_KEY = "iocl_last_activity";
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 function homeForRole(role: SessionUser["role"]) {
+  if (role === "ENTRY_GATE_SECURITY") return "/entries/new";
   if (role === "EXIT_GATE_SECURITY") return "/out";
   if (role === "ADMIN") return "/admin/records";
   return "/dashboard";

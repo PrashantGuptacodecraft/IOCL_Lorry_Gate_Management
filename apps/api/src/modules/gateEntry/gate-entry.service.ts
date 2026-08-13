@@ -337,13 +337,21 @@ export async function updateEntry(id: string, input: UpdateGateEntryInput, actor
     const before = await tx.gateEntry.findUnique({ where: { id }, include: includeEntry });
     if (!before || before.isDeleted) throw new ApiError(404, "ENTRY_NOT_FOUND", "Gate entry was not found");
     const adminCorrection = actor.role === UserRole.ADMIN;
-    if (before.status !== EntryStatus.IN && !adminCorrection) {
+    if (before.status !== EntryStatus.IN && !adminCorrection && actor.role !== UserRole.EXIT_GATE_SECURITY) {
       throw new ApiError(409, "ENTRY_LOCKED", "Operational IN data is locked after exit; only an administrator can make an audited correction");
     }
     if (actor.role === UserRole.ENTRY_GATE_SECURITY && (before.createdById !== actor.userId || before.businessDate.getTime() !== getBusinessDate().getTime())) {
       throw new ApiError(403, "FORBIDDEN", "You can edit only your own open IN entries from today");
     }
-    if (actor.role === UserRole.EXIT_GATE_SECURITY) throw new ApiError(403, "FORBIDDEN", "Exit security cannot edit IN data");
+    if (actor.role === UserRole.EXIT_GATE_SECURITY) {
+      if (before.status === EntryStatus.IN) {
+        if (before.businessDate.getTime() !== getBusinessDate().getTime()) throw new ApiError(403, "FORBIDDEN", "You can edit only entries from today");
+      } else {
+        if (before.exitCreatedById !== actor.userId || before.businessDate.getTime() !== getBusinessDate().getTime()) {
+          throw new ApiError(403, "FORBIDDEN", "You can edit only your own OUT entries from today");
+        }
+      }
+    }
     if (before.recordVersion !== input.expectedVersion) throw new ApiError(409, "VERSION_CONFLICT", "This record changed on another device. Reload and try again.");
     if (!before.safetyChecklist) throw new ApiError(500, "CHECKLIST_MISSING", "The safety checklist is missing from this record");
 

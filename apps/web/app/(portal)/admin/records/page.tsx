@@ -61,6 +61,7 @@ export default function AdminRecordsPage() {
   }
 
   async function bulkDelete() {
+    if (!date) return toast.error("Please select a date first to choose the month");
     const month = date.slice(0, 7);
     const reason = window.prompt(`Reason for soft deleting all records in ${month}:`);
     if (!reason) return;
@@ -96,6 +97,6 @@ export default function AdminRecordsPage() {
       {!loading && items.length === 0 ? <div className="px-6 py-16 text-center"><Truck className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-3 font-black text-slate-600">No records for this selection</p></div> : null}
     </div>{!loading && totalPages > 1 ? <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs font-semibold text-slate-500">Showing page {page} of {totalPages} · {total} records</p><div className="flex gap-2"><Button type="button" variant="secondary" className="min-h-10 px-3" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} icon={<ChevronLeft className="h-4 w-4" />}>Previous</Button><Button type="button" variant="secondary" className="min-h-10 px-3" disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Next <ChevronRight className="h-4 w-4" /></Button></div></div> : null}</section>
 
-    <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-red-900">Monthly soft delete</p><p className="mt-1 text-xs text-red-700">Marks records deleted; data and audit history remain recoverable. Selected month: {date.slice(0, 7)}.</p></div><Button type="button" variant="danger" disabled={busy} onClick={() => void bulkDelete()} icon={<Trash2 className="h-4 w-4" />}>Bulk Delete Month</Button></div></section>
+    <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-red-900">Monthly soft delete</p><p className="mt-1 text-xs text-red-700">Marks records deleted; data and audit history remain recoverable. Selected month: {date ? date.slice(0, 7) : "None"}.</p></div><Button type="button" variant="danger" disabled={busy || !date} onClick={() => void bulkDelete()} icon={<Trash2 className="h-4 w-4" />}>Bulk Delete Month</Button></div></section>
   </div>;
 }

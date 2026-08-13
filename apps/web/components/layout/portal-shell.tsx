@@ -28,7 +28,7 @@ import { LoadingScreen } from "../ui/loading-screen";
 
 interface NavItem { href: string; label: string; icon: LucideIcon; roles: string[]; exact?: boolean }
 const nav: NavItem[] = [
-  { href: "/dashboard",    label: "Control Room",     icon: Gauge,            roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/dashboard",    label: "Control Room",     icon: Gauge,            roles: ["SUPERVISOR", "ADMIN"] },
   { href: "/entries/new", label: "IN Gate Scanner",      icon: ScanLine,             roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/out",         label: "OUT Gate Scanner",  icon: ScanLine,         roles: ["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/entries?tab=in",  label: "IN-Gate Record",   icon: ArrowDownToLine,  roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
@@ -71,6 +71,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user || pathname === "/unauthorized") return;
     const restricted =
+      (pathname === "/dashboard" && !["SUPERVISOR", "ADMIN"].includes(user.role)) ||
       (pathname.startsWith("/entries/new") && !["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"].includes(user.role)) ||
       (pathname.startsWith("/out") && !["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"].includes(user.role)) ||
       (pathname.startsWith("/admin") && user.role !== "ADMIN") ||

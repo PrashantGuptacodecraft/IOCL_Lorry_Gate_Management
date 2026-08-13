@@ -147,16 +147,7 @@ export const safetyChecklistBase = z.object({
   exceptionRemarks: optionalText(500),
 }).strict();
 
-export const safetyChecklistSchema = safetyChecklistBase.superRefine((value, ctx) => {
-  const failed = IN_GATE_SAFETY_ITEMS.filter(({ key }) => value[key] === false);
-  if (failed.length > 0 && value.exceptionRemarks.trim().length < 10) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["exceptionRemarks"],
-      message: "Explain every failed safety check (at least 10 characters)",
-    });
-  }
-});
+export const safetyChecklistSchema = safetyChecklistBase;
 export type SafetyChecklistInput = z.input<typeof safetyChecklistSchema>;
 export type SafetyChecklistValue = z.output<typeof safetyChecklistSchema>;
 

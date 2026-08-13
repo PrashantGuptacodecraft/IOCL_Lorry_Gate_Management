@@ -307,7 +307,7 @@ gateEntryRouter.patch(
   "/:id",
   // ENTRY_GATE_SECURITY can edit their OWN open IN entries (today only)
   // SUPERVISOR/ADMIN can edit any entry — service layer enforces these rules
-  authorize(UserRole.ENTRY_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
+  authorize(UserRole.ENTRY_GATE_SECURITY, UserRole.EXIT_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
   validateParams(idParams),
   validateBody(updateGateEntrySchema),
   asyncHandler(async (req, res) => {
