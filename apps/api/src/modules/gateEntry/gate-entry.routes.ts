@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import ExcelJS from "exceljs";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 import {
@@ -33,6 +34,37 @@ export const gateEntryRouter = Router();
 gateEntryRouter.use(authenticate);
 
 gateEntryRouter.get(
+  "/summary",
+  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
+  asyncHandler(async (req, res) => {
+    const date = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+    const items = await service.listForExport({ date, pageSize: 10000 } as Parameters<typeof service.listForExport>[0], req.auth!);
+    const sum = (key: "qtyMs" | "qtyXpms" | "qtyEbms" | "qtyHsd" | "qtySko" | "qtyXg" | "qtyBioHsd" | "qtyFo" | "qtyLdo") =>
+      items.reduce((acc, item) => acc + parseFloat(String(item[key] ?? "0")), 0);
+    const out   = items.filter((item) => item.status === "OUT");
+    const inItems = items.filter((item) => item.status === "IN");
+    res.json({
+      success: true,
+      data: {
+        date,
+        total: items.length,
+        in: inItems.length,
+        out: out.length,
+        cancelled: items.filter((item) => item.status === "CANCELLED").length,
+        quantities: {
+          ms:     String(sum("qtyMs")),
+          xpms:   String(sum("qtyXpms")),
+          ebms:   String(sum("qtyEbms")),
+          hsd:    String(sum("qtyHsd")),
+          petrol: String(sum("qtyMs") + sum("qtyXpms") + sum("qtyEbms")),
+          diesel: String(sum("qtyHsd") + sum("qtySko") + sum("qtyXg") + sum("qtyBioHsd")),
+        },
+      },
+    });
+  }),
+);
+
+gateEntryRouter.get(
   "/",
   authorize(...allOperationalRoles),
   validateQuery(entryFilterSchema),
@@ -48,22 +80,28 @@ gateEntryRouter.get(
   validateQuery(entryFilterSchema),
   asyncHandler(async (req, res) => {
     const items = await service.listForExport(res.locals.validatedQuery, req.auth!);
+    const maskPlaceholder = (v: string | null | undefined) => {
+      if (!v || v === "-" || v.startsWith("NTKN-")) return "";
+      return v;
+    };
     const headers = [
-      "SL.NO", "Date", "Status", "Customer / Destination", "Tank Truck No", "ABS", "Challan No", "Time In", "Time Out",
-      "MS", "XPMS", "EBMS", "HSD", "SKO", "XG", "BIO HSD", "FO", "LDO", "Lock No", 
-      "Driver", "Crew ID", "DL No", "DL Expiry", "Pass Valid Upto", "TT No on Pass",
-      "TT Match", "Driver Pass", "Driver ABT", "Helper", "Helper Pass", "Helper ABT", "Mobile Token", "Driver Confirmation",
+      "SL.NO", "Date", "Status", "Customer / Destination", "Tank Truck No", "ABS", "Time In", "Time Out",
+      "MS (L)", "XP 95 (L)", "EBMS (L)", "HSD (L)", "SKO (L)", "XG (L)", "BIO HSD (L)", "FO (L)", "LDO (L)", "Lock No",
+      "Driver", "Crew ID", "DL No", "DL Expiry", "Pass Valid Upto", "TT No on Pass", "TT Match",
+      "Helper", "Helper Pass", "Driver Confirmation",
       "Invoice No", "Invoice Date", "Consignee", "Remarks", "Created By", "Exit By",
     ];
     const rows = items.map((entry) => [
       entry.serialNumber, entry.businessDate.toISOString().slice(0, 10), entry.status, entry.customerDestination,
-      entry.actualTankTruckNumber, entry.abs ? "YES" : "NO", entry.challanNumber, entry.timeIn.toISOString(), entry.timeOut?.toISOString() ?? "",
-      entry.qtyMs, entry.qtyXpms, entry.qtyEbms, entry.qtyHsd, entry.qtySko, entry.qtyXg, entry.qtyBioHsd, entry.qtyFo, entry.qtyLdo, entry.lockNumber ?? "",
+      entry.actualTankTruckNumber, entry.abs ? "YES" : "NO", entry.timeIn.toISOString(), entry.timeOut?.toISOString() ?? "",
+      entry.qtyMs ?? "", entry.qtyXpms ?? "", entry.qtyEbms ?? "", entry.qtyHsd ?? "",
+      entry.qtySko ?? "", entry.qtyXg ?? "", entry.qtyBioHsd ?? "", entry.qtyFo ?? "", entry.qtyLdo ?? "",
+      entry.lockNumber ?? "",
       entry.driverName, entry.crewId, entry.drivingLicenseNumber,
       entry.drivingLicenseExpiryDate.toISOString().slice(0, 10), entry.passValidUntil.toISOString().slice(0, 10), entry.ttNumberOnPass,
-      entry.ttNumberMatch ? "YES" : "NO", entry.driverPassNumber, entry.driverAbt ? "YES" : "NO", entry.helperName ?? "",
-      entry.helperPassNumber ?? "", entry.helperAbt ? "YES" : "NO", entry.mobileTokenNumber,
-      entry.driverSignatureConfirmed ? "CONFIRMED" : "NOT CONFIRMED", entry.invoiceNumber ?? "", entry.invoiceDate?.toISOString().slice(0, 10) ?? "",
+      entry.ttNumberMatch ? "YES" : "NO",
+      entry.helperName ?? "", maskPlaceholder(entry.helperPassNumber), entry.driverSignatureConfirmed ? "CONFIRMED" : "NOT CONFIRMED",
+      entry.invoiceNumber ?? "", entry.invoiceDate?.toISOString().slice(0, 10) ?? "",
       entry.invoiceConsignee ?? "", entry.remarks ?? "", entry.createdBy.employeeCode, entry.exitCreatedBy?.employeeCode ?? "",
     ]);
 
@@ -78,11 +116,11 @@ gateEntryRouter.get(
     const totalLdo = items.reduce((sum, item) => sum + (parseFloat(item.qtyLdo || "0") || 0), 0);
 
     const totalsRow = [
-      "TOTALS", "", "", "", "", "", "", "", "",
+      "TOTALS", "", "", "", "", "", "", "",
       totalMs.toFixed(3), totalXpms.toFixed(3), totalEbms.toFixed(3), totalHsd.toFixed(3),
       totalSko.toFixed(3), totalXg.toFixed(3), totalBioHsd.toFixed(3), totalFo.toFixed(3), totalLdo.toFixed(3), "",
-      "", "", "", "", "", "",
-      "", "", "", "", "", "", "", "",
+      "", "", "", "", "", "", "",
+      "", "", "",
       "", "", "", "", "", "",
     ];
     rows.push(totalsRow);
@@ -91,6 +129,105 @@ gateEntryRouter.get(
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="iocl-gate-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.send(csv);
+  }),
+);
+
+gateEntryRouter.get(
+  "/export.xlsx",
+  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
+  asyncHandler(async (req, res) => {
+    const queryDate = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+    const items = await service.listForExport({ date: queryDate, pageSize: 10000 } as any, req.auth!);
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(queryDate);
+
+    sheet.columns = [
+      { header: "SL.NO", key: "slNo", width: 8 },
+      { header: "Date", key: "date", width: 12 },
+      { header: "Truck No", key: "truckNo", width: 15 },
+      { header: "Driver", key: "driver", width: 20 },
+      { header: "Destination", key: "destination", width: 20 },
+      { header: "ABS", key: "abs", width: 8 },
+      { header: "Time IN", key: "timeIn", width: 10 },
+      { header: "Time OUT", key: "timeOut", width: 10 },
+      { header: "MS (L)", key: "ms", width: 10 },
+      { header: "XP 95 (L)", key: "xp95", width: 10 },
+      { header: "HSD (L)", key: "hsd", width: 10 },
+      { header: "SKO (L)", key: "sko", width: 10 },
+      { header: "XG (L)", key: "xg", width: 10 },
+      { header: "BIO HSD (L)", key: "bioHsd", width: 12 },
+      { header: "FO (L)", key: "fo", width: 10 },
+      { header: "LDO (L)", key: "ldo", width: 10 },
+      { header: "Lock No", key: "lockNo", width: 12 },
+      { header: "Invoice No", key: "invoiceNo", width: 15 },
+      { header: "Invoice Date", key: "invoiceDate", width: 12 },
+      { header: "Consignee", key: "consignee", width: 20 },
+      { header: "Status", key: "status", width: 12 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE87722" },
+      };
+    });
+
+    const formatDate = (d: Date | null | undefined) => d ? `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}` : "";
+    const formatTime = (d: Date | null | undefined) => d ? `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}` : "";
+
+    items.forEach((entry) => {
+      sheet.addRow({
+        slNo: entry.serialNumber,
+        date: formatDate(entry.businessDate),
+        truckNo: entry.actualTankTruckNumber,
+        driver: entry.driverName,
+        destination: entry.customerDestination,
+        abs: entry.abs ? "YES" : "NO",
+        timeIn: formatTime(entry.timeIn),
+        timeOut: formatTime(entry.timeOut),
+        ms: entry.qtyMs ? Number(entry.qtyMs) : null,
+        xp95: entry.qtyXpms ? Number(entry.qtyXpms) : null,
+        hsd: entry.qtyHsd ? Number(entry.qtyHsd) : null,
+        sko: entry.qtySko ? Number(entry.qtySko) : null,
+        xg: entry.qtyXg ? Number(entry.qtyXg) : null,
+        bioHsd: entry.qtyBioHsd ? Number(entry.qtyBioHsd) : null,
+        fo: entry.qtyFo ? Number(entry.qtyFo) : null,
+        ldo: entry.qtyLdo ? Number(entry.qtyLdo) : null,
+        lockNo: entry.lockNumber ?? "",
+        invoiceNo: entry.invoiceNumber ?? "",
+        invoiceDate: formatDate(entry.invoiceDate),
+        consignee: entry.invoiceConsignee ?? "",
+        status: entry.status,
+      });
+    });
+
+    const totalRowIndex = sheet.rowCount + 1;
+    const totalsRow = sheet.getRow(totalRowIndex);
+    totalsRow.getCell("slNo").value = "TOTALS";
+
+    const columnsToSum = ["I", "J", "K", "L", "M", "N", "O", "P"];
+    columnsToSum.forEach((col) => {
+      totalsRow.getCell(col).value = { formula: `SUM(${col}2:${col}${totalRowIndex - 1})`, date1904: false };
+    });
+
+    totalsRow.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFF3CD" },
+      };
+    });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="gate-log-${queryDate}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
   }),
 );
 
@@ -136,7 +273,7 @@ gateEntryRouter.post(
 
 gateEntryRouter.patch(
   "/:id",
-  authorize(UserRole.ENTRY_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
+  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
   validateParams(idParams),
   validateBody(updateGateEntrySchema),
   asyncHandler(async (req, res) => {
@@ -158,7 +295,7 @@ gateEntryRouter.post(
 
 gateEntryRouter.patch(
   "/:id/exit-quantities",
-  authorize(UserRole.EXIT_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
+  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
   validateParams(idParams),
   validateBody(updateExitQuantitiesSchema),
   asyncHandler(async (req, res) => {

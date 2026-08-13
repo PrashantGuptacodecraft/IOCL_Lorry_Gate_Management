@@ -285,7 +285,8 @@ export function submitDemoExit(id: string, input: SubmitExitInput) {
   if (!invoice.invoiceNumber || !invoice.vehicleNumber || !invoice.productQuantityRaw) throw new Error("Invoice QR is missing required fields");
   if (normalizeTruck(current.actualTankTruckNumber) !== invoice.vehicleNumber) throw new Error("Invoice vehicle does not match the open IN record");
   if (entries.some((item) => item.invoiceNumber === invoice.invoiceNumber)) throw new Error("This invoice number has already been submitted");
-  if ([input.qtyMs, input.qtyXpms, input.qtyEbms, input.qtyHsd].some((value) => !Number.isFinite(value) || value < 0) || input.qtyMs + input.qtyXpms + input.qtyEbms + input.qtyHsd <= 0) {
+  if ([input.qtyMs, input.qtyXpms, input.qtyEbms, input.qtyHsd, input.qtySko, input.qtyXg, input.qtyBioHsd, input.qtyFo, input.qtyLdo].some((value) => !Number.isFinite(value) || value < 0) ||
+      input.qtyMs + input.qtyXpms + input.qtyEbms + input.qtyHsd + input.qtySko + input.qtyXg + input.qtyBioHsd + input.qtyFo + input.qtyLdo <= 0) {
     throw new Error("Enter at least one valid product quantity");
   }
   const hasExpiryWarning = current.passValidUntil < `${todayKey()}T00:00:00.000Z` || current.drivingLicenseExpiryDate < `${todayKey()}T00:00:00.000Z`;
@@ -294,6 +295,7 @@ export function submitDemoExit(id: string, input: SubmitExitInput) {
   const next: GateEntryRecord = {
     ...current, recordVersion: current.recordVersion + 1, status: "OUT", timeOut: new Date().toISOString(),
     qtyMs: String(input.qtyMs), qtyXpms: String(input.qtyXpms), qtyEbms: String(input.qtyEbms), qtyHsd: String(input.qtyHsd),
+    qtySko: String(input.qtySko), qtyXg: String(input.qtyXg), qtyBioHsd: String(input.qtyBioHsd), qtyFo: String(input.qtyFo), qtyLdo: String(input.qtyLdo),
     invoiceNumber: invoice.invoiceNumber, invoiceDate: "2026-06-06", invoiceValue: invoice.invoiceValue || null,
     invoiceVehicle: invoice.vehicleNumber, invoiceConsignee: invoice.consignee, invoiceProductsRaw: invoice.productQuantityRaw,
     exitCreatedBy: outUser, updatedAt: new Date().toISOString(),

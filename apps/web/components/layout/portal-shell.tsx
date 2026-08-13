@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  DownloadCloud,
   FileClock,
   FileSpreadsheet,
   Gauge,
@@ -30,8 +31,9 @@ const nav: NavItem[] = [
   { href: "/entries/new", label: "New IN Entry", icon: Plus, roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/out", label: "OUT Gate Scanner", icon: ScanLine, roles: ["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/entries", label: "Gate Records", icon: Truck, roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/admin/records", label: "Admin Register", icon: FileSpreadsheet, roles: ["ADMIN"] },
-  { href: "/admin/users", label: "User Management", icon: Users, roles: ["ADMIN"] },
+  { href: "/admin/records", label: "Admin Register",  icon: FileSpreadsheet,  roles: ["ADMIN"] },
+  { href: "/admin/reports", label: "Reports & Export", icon: DownloadCloud,      roles: ["ADMIN", "SUPERVISOR"] },
+  { href: "/admin/users",   label: "User Management", icon: Users,             roles: ["ADMIN"] },
   { href: "/audit", label: "Audit Trail", icon: FileClock, roles: ["SUPERVISOR", "ADMIN"] },
 ];
 

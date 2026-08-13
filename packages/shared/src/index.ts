@@ -259,18 +259,21 @@ export const submitExitSchema = z.object({
 });
 export type SubmitExitInput = z.infer<typeof submitExitSchema>;
 
+// Separate quantity type without .default(0) for partial updates — prevents silently overwriting existing values with 0
+const optionalQuantity = z.coerce.number().finite().min(0, "Quantity cannot be negative").max(100_000_000).optional();
+
 export const updateExitQuantitiesSchema = z.object({
   expectedVersion: z.number().int().positive(),
   lockNumber: z.string().trim().max(50).optional(),
-  qtyMs: quantity.optional(),
-  qtyXpms: quantity.optional(),
-  qtyEbms: quantity.optional(),
-  qtyHsd: quantity.optional(),
-  qtySko: quantity.optional(),
-  qtyXg: quantity.optional(),
-  qtyBioHsd: quantity.optional(),
-  qtyFo: quantity.optional(),
-  qtyLdo: quantity.optional(),
+  qtyMs: optionalQuantity,
+  qtyXpms: optionalQuantity,
+  qtyEbms: optionalQuantity,
+  qtyHsd: optionalQuantity,
+  qtySko: optionalQuantity,
+  qtyXg: optionalQuantity,
+  qtyBioHsd: optionalQuantity,
+  qtyFo: optionalQuantity,
+  qtyLdo: optionalQuantity,
 }).strict().refine(
   (value) => [value.qtyMs, value.qtyXpms, value.qtyEbms, value.qtyHsd, value.qtySko, value.qtyXg, value.qtyBioHsd, value.qtyFo, value.qtyLdo, value.lockNumber].some((item) => item !== undefined),
   "Provide at least one quantity or lock number to update",

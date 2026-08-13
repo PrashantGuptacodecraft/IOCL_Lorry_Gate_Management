@@ -253,7 +253,7 @@ export async function downloadCsv(filter: Partial<EntryFilter> = {}) {
 }
 export async function downloadExcel(date: string) {
   if (DEMO_MODE) throw new ApiClientError("Excel export is available in the connected build", "DEMO_EXPORT_DISABLED");
-  await download(`/reports/excel?date=${encodeURIComponent(date)}`, `gate-log-${date}.xlsx`);
+  await download(`/gate-entries/export.xlsx?date=${encodeURIComponent(date)}`, `gate-log-${date}.xlsx`);
 }
 export async function getReportSummary(date: string) {
   if (DEMO_MODE) {
@@ -267,5 +267,5 @@ export async function getReportSummary(date: string) {
       quantities: summary.quantities,
     };
   }
-  return request<{ date: string; total: number; in: number; out: number; cancelled: number; quantities: DashboardSummary["quantities"] }>(`/reports/summary?date=${encodeURIComponent(date)}`);
+  return request<{ date: string; total: number; in: number; out: number; cancelled: number; quantities: DashboardSummary["quantities"] }>(`/gate-entries/summary?date=${encodeURIComponent(date)}`);
 }
