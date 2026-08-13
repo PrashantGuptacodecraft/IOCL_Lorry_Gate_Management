@@ -93,9 +93,7 @@ function dateWhere(filter: EntryFilter, actor: Actor): Prisma.GateEntryWhereInpu
 
 function roleVisibility(actor: Actor, filter: EntryFilter): Prisma.GateEntryWhereInput | undefined {
   if (actor.role === UserRole.ENTRY_GATE_SECURITY) {
-    if (filter.status === EntryStatus.IN) return { createdById: actor.userId };
-    if (filter.status === EntryStatus.OUT) return undefined;
-    return { OR: [{ status: EntryStatus.IN, createdById: actor.userId }, { status: EntryStatus.OUT }] };
+    return { createdById: actor.userId };
   }
   if (actor.role === UserRole.EXIT_GATE_SECURITY) {
     if (filter.status === EntryStatus.OUT) return { exitCreatedById: actor.userId };
@@ -242,9 +240,6 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
     });
 
     const calculatedMatch = normalizeTruck(pass.ttNumberOnPass) === actualTruck;
-    if (!calculatedMatch && input.remarks.trim().length < 5) {
-      throw new ApiError(422, "TT_MISMATCH_REMARK_REQUIRED", "Add a remark explaining the physical TT number mismatch");
-    }
 
     const entry = await tx.gateEntry.create({
       data: {
@@ -359,9 +354,6 @@ export async function updateEntry(id: string, input: UpdateGateEntryInput, actor
 
     const nextTruck = manual.actualTankTruckNumber !== undefined ? normalizeTruck(manual.actualTankTruckNumber) : before.actualTankTruckNumber;
     const nextRemarks = manual.remarks !== undefined ? manual.remarks.trim() : before.remarks ?? "";
-    if (normalizeTruck(before.ttNumberOnPass) !== nextTruck && nextRemarks.length < 5) {
-      throw new ApiError(422, "TT_MISMATCH_REMARK_REQUIRED", "Add a remark explaining the physical TT number mismatch");
-    }
 
     let mergedSafety: ReturnType<typeof safetyChecklistSchema.parse> | undefined;
     if (safetyChecklist) {

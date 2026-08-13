@@ -29,7 +29,7 @@ import { LoadingScreen } from "../ui/loading-screen";
 interface NavItem { href: string; label: string; icon: LucideIcon; roles: string[]; exact?: boolean }
 const nav: NavItem[] = [
   { href: "/dashboard",    label: "Control Room",     icon: Gauge,            roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/entries/new", label: "New IN Entry",      icon: Plus,             roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/entries/new", label: "IN Gate Scanner",      icon: ScanLine,             roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/out",         label: "OUT Gate Scanner",  icon: ScanLine,         roles: ["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/entries?tab=in",  label: "IN-Gate Record",   icon: ArrowDownToLine,  roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
   { href: "/entries?tab=out", label: "OUT-Gate Record",  icon: ArrowUpFromLine,  roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
@@ -125,7 +125,14 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:py-8 lg:pb-10">{children}</main>
       </div>
       <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-3 rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Mobile navigation">
-        {visibleNav.slice(0, 3).map((item) => { const Icon = item.icon; const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-bold", active ? "bg-iocl-orange text-white" : "text-slate-500")}><Icon className="h-5 w-5" />{item.label.replace("Gate ", "")}</Link>; })}
+        {visibleNav
+          .filter(item => !(user?.role === "ENTRY_GATE_SECURITY" && item.href === "/dashboard"))
+          .slice(0, 3)
+          .map((item) => { 
+            const Icon = item.icon; 
+            const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)); 
+            return <Link key={item.href} href={item.href} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-bold", active ? "bg-iocl-orange text-white" : "text-slate-500")}><Icon className="h-5 w-5" />{item.label.replace("Gate ", "")}</Link>; 
+          })}
       </nav>
     </div>
   );

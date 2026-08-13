@@ -15,6 +15,7 @@ import {
   LogOut,
   Plus,
   RefreshCw,
+  ScanLine,
   Search,
   Truck,
 } from "lucide-react";
@@ -26,7 +27,7 @@ import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 
-function useEntriesPanel(status: "IN" | "OUT") {
+function useEntriesPanel(status?: "IN" | "OUT") {
   const [entries, setEntries] = useState<GateEntryRecord[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -165,7 +166,7 @@ export default function EntriesPage() {
     if (tab === "out") outRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [tab]);
 
-  const inPanel = useEntriesPanel("IN");
+  const inPanel = useEntriesPanel(); // no status filter = shows both IN and OUT
   const outPanel = useEntriesPanel("OUT");
 
   async function exportCsv() {
@@ -196,7 +197,7 @@ export default function EntriesPage() {
               </Button>
             ) : null}
             {user?.role !== "EXIT_GATE_SECURITY"
-              ? <Link href="/entries/new"><Button icon={<Plus className="h-5 w-5" />}>New IN Entry</Button></Link>
+              ? <Link href="/entries/new"><Button icon={<ScanLine className="h-5 w-5" />}>IN Scanner</Button></Link>
               : <Link href="/out"><Button icon={<Truck className="h-5 w-5" />}>Process Vehicle OUT</Button></Link>
             }
           </div>
@@ -220,7 +221,7 @@ export default function EntriesPage() {
               loading={inPanel.loading}
               error={inPanel.error}
               onReload={inPanel.reload}
-              emptyText="No vehicles currently checked IN"
+              emptyText="No vehicles have been checked IN today"
               emptySubtext="Scan a crew QR to create a new IN entry"
             />
           </div>

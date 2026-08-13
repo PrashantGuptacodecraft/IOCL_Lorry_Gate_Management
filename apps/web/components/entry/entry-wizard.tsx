@@ -136,7 +136,6 @@ export function EntryWizard() {
     if (step === 1 && pass?.crewType === "DRIVER_WITH_HELPER" && (!(values.helperName ?? "").trim() || !(values.helperPassNumber ?? "").trim())) {
       return toast.error("Helper name and helper pass number are required for this crew pass");
     }
-    if (step === 1 && !ttMatch && (values.remarks ?? "").trim().length < 5) return toast.error("Add a remark explaining the TT number mismatch");
     setStep((value) => Math.min(3, value + 1));
   }
 

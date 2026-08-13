@@ -143,13 +143,30 @@ gateEntryRouter.get(
     const sheet = workbook.addWorksheet(queryDate);
 
     sheet.columns = [
-      { header: "SL.NO", key: "slNo", width: 8 },
-      { header: "Date", key: "date", width: 12 },
-      { header: "Truck No", key: "truckNo", width: 15 },
-      { header: "Driver", key: "driver", width: 20 },
-      { header: "Destination", key: "destination", width: 20 },
+      { header: "Sl. No", key: "slNo", width: 8 },
+      { header: "TT No.", key: "truckNo", width: 15 },
       { header: "ABS", key: "abs", width: 8 },
+      { header: "TLF No / Challan", key: "tlfNo", width: 15 },
+      { header: "Thru' / proxi-card / manual", key: "scanMethod", width: 15 },
       { header: "Time IN", key: "timeIn", width: 10 },
+      { header: "ISI Marked DCP FE Available", key: "isiDcp", width: 15 },
+      { header: "Driving License is endorsed as per CMV Rule 9", key: "dlEndorsed", width: 15 },
+      { header: "Availability of Helper with Tank Truck", key: "helperAvail", width: 15 },
+      { header: "Wearing of PPEs by TT Crew", key: "ppe", width: 15 },
+      { header: "Rubber Hose with Cam-Lock Coupling", key: "rubberHose", width: 15 },
+      { header: "CCOE approved Spark Arrester welded", key: "sparkArrester", width: 15 },
+      { header: "TERM Card and Crew Training Card available", key: "termCard", width: 15 },
+      { header: "Self Starter Working", key: "selfStarter", width: 15 },
+      { header: "Rubber Cover Provided for Battery Terminal", key: "batteryCover", width: 15 },
+      { header: "No Container / Can in TT's Cabin", key: "noContainers", width: 15 },
+      { header: "Condition of Battery Cut off Switch", key: "batteryCutoff", width: 15 },
+      { header: "Hand Break working", key: "handBrake", width: 15 },
+      { header: "Earth Cleat Provided", key: "earthCleat", width: 15 },
+      { header: "VMU Status Switch OFF", key: "vmuSwitch", width: 15 },
+      { header: "Driver Name with Pass No.", key: "driverInfo", width: 25 },
+      { header: "ABT", key: "driverAbt", width: 8 },
+      { header: "Cleaner Name with Pass No.", key: "helperInfo", width: 25 },
+      { header: "ABAT", key: "helperAbt", width: 8 },
       { header: "Time OUT", key: "timeOut", width: 10 },
       { header: "MS (L)", key: "ms", width: 10 },
       { header: "XP 95 (L)", key: "xp95", width: 10 },
@@ -159,10 +176,9 @@ gateEntryRouter.get(
       { header: "BIO HSD (L)", key: "bioHsd", width: 12 },
       { header: "FO (L)", key: "fo", width: 10 },
       { header: "LDO (L)", key: "ldo", width: 10 },
-      { header: "Lock No", key: "lockNo", width: 12 },
       { header: "Invoice No", key: "invoiceNo", width: 15 },
       { header: "Invoice Date", key: "invoiceDate", width: 12 },
-      { header: "Consignee", key: "consignee", width: 20 },
+      { header: "Destination", key: "destination", width: 20 },
       { header: "Status", key: "status", width: 12 },
     ];
 
@@ -174,20 +190,40 @@ gateEntryRouter.get(
         pattern: "solid",
         fgColor: { argb: "FFE87722" },
       };
+      cell.alignment = { wrapText: true, vertical: "top" };
     });
 
-    const formatDate = (d: Date | null | undefined) => d ? `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}` : "";
     const formatTime = (d: Date | null | undefined) => d ? `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}` : "";
+    const formatDate = (d: Date | null | undefined) => d ? `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}` : "";
+    const chk = (val: boolean | undefined | null) => val === true ? "YES" : val === false ? "NO" : "";
 
     items.forEach((entry) => {
+      const s = entry.safetyChecklist || ({} as any);
       sheet.addRow({
         slNo: entry.serialNumber,
-        date: formatDate(entry.businessDate),
         truckNo: entry.actualTankTruckNumber,
-        driver: entry.driverName,
-        destination: entry.customerDestination,
         abs: entry.abs ? "YES" : "NO",
+        tlfNo: entry.challanNumber || "",
+        scanMethod: entry.qrScanMethod === "MANUAL" ? "MANUAL" : "PROXI-CARD",
         timeIn: formatTime(entry.timeIn),
+        isiDcp: chk(s.is1x10kgDcp),
+        dlEndorsed: chk(s.isDrivingLicenseEndorsed),
+        helperAvail: chk(s.isHelperAvailable),
+        ppe: chk(s.isPpeWorn),
+        rubberHose: chk(s.isRubberHoseAvailable),
+        sparkArrester: chk(s.isSparkArresterWelded),
+        termCard: chk(s.isTermCardAvailable),
+        selfStarter: chk(s.isSelfStarterWorking),
+        batteryCover: chk(s.isBatteryCoverProvided),
+        noContainers: chk(s.isNoCabinContainers),
+        batteryCutoff: chk(s.isBatteryCutOffWorking),
+        handBrake: chk(s.isHandBrakeWorking),
+        earthCleat: chk(s.isEarthCleatProvided),
+        vmuSwitch: chk(s.isVmuSwitchOff),
+        driverInfo: `${entry.driverName} (${entry.driverPassNumber || entry.crewId})`,
+        driverAbt: entry.driverAbt ? "YES" : "NO",
+        helperInfo: entry.helperName ? `${entry.helperName} (${entry.helperPassNumber || ""})` : "N/A",
+        helperAbt: entry.helperAbt ? "YES" : "NO",
         timeOut: formatTime(entry.timeOut),
         ms: entry.qtyMs ? Number(entry.qtyMs) : null,
         xp95: entry.qtyXpms ? Number(entry.qtyXpms) : null,
@@ -197,10 +233,9 @@ gateEntryRouter.get(
         bioHsd: entry.qtyBioHsd ? Number(entry.qtyBioHsd) : null,
         fo: entry.qtyFo ? Number(entry.qtyFo) : null,
         ldo: entry.qtyLdo ? Number(entry.qtyLdo) : null,
-        lockNo: entry.lockNumber ?? "",
         invoiceNo: entry.invoiceNumber ?? "",
         invoiceDate: formatDate(entry.invoiceDate),
-        consignee: entry.invoiceConsignee ?? "",
+        destination: entry.customerDestination ?? "",
         status: entry.status,
       });
     });
@@ -209,18 +244,15 @@ gateEntryRouter.get(
     const totalsRow = sheet.getRow(totalRowIndex);
     totalsRow.getCell("slNo").value = "TOTALS";
 
-    const columnsToSum = ["I", "J", "K", "L", "M", "N", "O", "P"];
+    // Columns Z to AH are the product quantities
+    const columnsToSum = ["Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG"];
     columnsToSum.forEach((col) => {
       totalsRow.getCell(col).value = { formula: `SUM(${col}2:${col}${totalRowIndex - 1})`, date1904: false };
     });
 
     totalsRow.eachCell((cell) => {
       cell.font = { bold: true };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFF3CD" },
-      };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3CD" } };
     });
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
