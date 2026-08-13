@@ -46,7 +46,9 @@ export function parseCrewPassQr(rawPayload: string) {
   if (CONTROL_CHARACTERS.test(rawPayload)) throw new ApiError(400, "QR_CONTROL_CHARACTERS", "The crew-pass QR contains unsupported control characters");
 
   const text = rawPayload.replaceAll("\r\n", " ").replaceAll("\r", " ").replaceAll("\n", " ").trim();
-  const nextFields = "name|driver\\s*name|crew\\s*type|pass\\s*valid|tt\\s*(?:no|number)|dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number)|dl\\s*expiry|driving\\s*licen[cs]e\\s*expiry";
+  // Each alternative MUST be the full field-label pattern (so the lookahead matches `label :` correctly).
+  // Using the complete label avoids false stops on partial words inside field values.
+  const nextFields = "(?:name|driver\\s*name)|crew\\s*type|pass\\s*valid\\s*(?:upto|up\\s*to|until)|tt\\s*(?:no|number)|(?:dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number))|(?:dl\\s*expiry(?:\\s*date)?|driving\\s*licen[cs]e\\s*expiry(?:\\s*date)?)";
   const getField = (labelRegex: string) => {
     const regex = new RegExp(`${labelRegex}\\s*:\\s*(.*?)(?=\\s+(?:${nextFields})\\s*:|$)`, "i");
     return regex.exec(text)?.[1]?.trim() ?? "";
@@ -54,12 +56,15 @@ export function parseCrewPassQr(rawPayload: string) {
 
   const extracted = new Map<FieldKey, string>();
   extracted.set("crewId", getField("crew\\s*id"));
-  extracted.set("driverName", getField("name|driver\\s*name"));
+  // (?:...) is required around alternatives so the pipe | is scoped, not top-level in the regex.
+  // Without it, `name|driver\s*name\s*:...` means `name` OR `driver\s*name\s*:...`
+  // — the first alternative matches 4 chars with no capture group, returning undefined.
+  extracted.set("driverName", getField("(?:name|driver\\s*name)"));
   extracted.set("crewType", getField("crew\\s*type"));
   extracted.set("passValidUntil", getField("pass\\s*valid\\s*(?:upto|up\\s*to|until)"));
   extracted.set("ttNumberOnPass", getField("tt\\s*(?:no|number)"));
-  extracted.set("drivingLicenseNumber", getField("dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number)"));
-  extracted.set("drivingLicenseExpiryDate", getField("dl\\s*expiry\\s*(?:date)?|driving\\s*licen[cs]e\\s*expiry\\s*(?:date)?"));
+  extracted.set("drivingLicenseNumber", getField("(?:dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number))"));
+  extracted.set("drivingLicenseExpiryDate", getField("(?:dl\\s*expiry\\s*(?:date)?|driving\\s*licen[cs]e\\s*expiry\\s*(?:date)?)"));
 
   // Track which fields were missing or unparseable from the QR
   const missingFields: Array<{ key: FieldKey; label: string }> = [];
