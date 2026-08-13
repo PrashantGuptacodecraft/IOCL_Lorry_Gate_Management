@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { GateEntryRecord } from "@iocl/shared";
 import {
   AlertTriangle,
@@ -153,6 +154,16 @@ export default function EntriesPage() {
   const { user } = useAuth();
   const canExport = user?.role === "SUPERVISOR" || user?.role === "ADMIN";
   const [exporting, setExporting] = useState(false);
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab"); // "in" | "out" | null
+  const inRef = useRef<HTMLDivElement>(null);
+  const outRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the panel specified by ?tab= on first load
+  useEffect(() => {
+    if (tab === "in") inRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (tab === "out") outRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tab]);
 
   const inPanel = useEntriesPanel("IN");
   const outPanel = useEntriesPanel("OUT");
@@ -173,8 +184,8 @@ export default function EntriesPage() {
     <div>
       <PageHeader
         eyebrow="Today's operations"
-        title="Gate Records"
-        description="Click any record to view full details or edit. IN-Gate records are on the left, OUT-Gate records on the right."
+        title={tab === "in" ? "IN-Gate Records" : tab === "out" ? "OUT-Gate Records" : "Gate Records"}
+        description={tab === "in" ? "Vehicles currently inside the facility. Click any record to view details or edit." : tab === "out" ? "Vehicles that have completed the exit process. Click any record to view full details." : "Click any record to view full details or edit."}
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
             {canExport ? (
@@ -192,42 +203,50 @@ export default function EntriesPage() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className={tab ? "mx-auto max-w-5xl" : "grid gap-5 lg:grid-cols-2"}>
         {/* IN-GATE PANEL */}
-        <Panel
-          title="IN-Gate Records"
-          subtitle="Vehicles that have entered the facility"
-          icon={<ArrowDownToLine className="h-6 w-6" />}
-          gradientFrom="from-blue-700"
-          gradientTo="to-blue-500"
-          borderColor="border-blue-200"
-          entries={inPanel.entries}
-          search={inPanel.search}
-          onSearch={inPanel.setSearch}
-          loading={inPanel.loading}
-          error={inPanel.error}
-          onReload={inPanel.reload}
-          emptyText="No vehicles currently checked IN"
-          emptySubtext="Scan a crew QR to create a new IN entry"
-        />
+        {(tab === "in" || !tab) && (
+          <div ref={inRef} id="panel-in">
+            <Panel
+              title="IN-Gate Records"
+              subtitle="Vehicles that have entered the facility"
+              icon={<ArrowDownToLine className="h-6 w-6" />}
+              gradientFrom="from-blue-700"
+              gradientTo="to-blue-500"
+              borderColor="border-blue-200"
+              entries={inPanel.entries}
+              search={inPanel.search}
+              onSearch={inPanel.setSearch}
+              loading={inPanel.loading}
+              error={inPanel.error}
+              onReload={inPanel.reload}
+              emptyText="No vehicles currently checked IN"
+              emptySubtext="Scan a crew QR to create a new IN entry"
+            />
+          </div>
+        )}
 
         {/* OUT-GATE PANEL */}
-        <Panel
-          title="OUT-Gate Records"
-          subtitle="Vehicles that have exited with invoice"
-          icon={<ArrowUpFromLine className="h-6 w-6" />}
-          gradientFrom="from-emerald-700"
-          gradientTo="to-emerald-500"
-          borderColor="border-emerald-200"
-          entries={outPanel.entries}
-          search={outPanel.search}
-          onSearch={outPanel.setSearch}
-          loading={outPanel.loading}
-          error={outPanel.error}
-          onReload={outPanel.reload}
-          emptyText="No vehicles have exited today"
-          emptySubtext="OUT records appear here after invoice scan"
-        />
+        {(tab === "out" || !tab) && (
+          <div ref={outRef} id="panel-out">
+            <Panel
+              title="OUT-Gate Records"
+              subtitle="Vehicles that have exited with invoice"
+              icon={<ArrowUpFromLine className="h-6 w-6" />}
+              gradientFrom="from-emerald-700"
+              gradientTo="to-emerald-500"
+              borderColor="border-emerald-200"
+              entries={outPanel.entries}
+              search={outPanel.search}
+              onSearch={outPanel.setSearch}
+              loading={outPanel.loading}
+              error={outPanel.error}
+              onReload={outPanel.reload}
+              emptyText="No vehicles have exited today"
+              emptySubtext="OUT records appear here after invoice scan"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

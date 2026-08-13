@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   DownloadCloud,
   FileClock,
   FileSpreadsheet,
@@ -14,7 +16,6 @@ import {
   Plus,
   ScanLine,
   ShieldCheck,
-  Truck,
   Users,
   Wifi,
   WifiOff,
@@ -25,16 +26,17 @@ import { useAuth } from "../../lib/auth-context";
 import { cn } from "../../lib/utils";
 import { LoadingScreen } from "../ui/loading-screen";
 
-interface NavItem { href: string; label: string; icon: LucideIcon; roles: string[] }
+interface NavItem { href: string; label: string; icon: LucideIcon; roles: string[]; exact?: boolean }
 const nav: NavItem[] = [
-  { href: "/dashboard", label: "Control Room", icon: Gauge, roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/entries/new", label: "New IN Entry", icon: Plus, roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/out", label: "OUT Gate Scanner", icon: ScanLine, roles: ["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/entries", label: "Gate Records", icon: Truck, roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
-  { href: "/admin/records", label: "Admin Register",  icon: FileSpreadsheet,  roles: ["ADMIN"] },
-  { href: "/admin/reports", label: "Reports & Export", icon: DownloadCloud,      roles: ["ADMIN", "SUPERVISOR"] },
-  { href: "/admin/users",   label: "User Management", icon: Users,             roles: ["ADMIN"] },
-  { href: "/audit", label: "Audit Trail", icon: FileClock, roles: ["SUPERVISOR", "ADMIN"] },
+  { href: "/dashboard",    label: "Control Room",     icon: Gauge,            roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/entries/new", label: "New IN Entry",      icon: Plus,             roles: ["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/out",         label: "OUT Gate Scanner",  icon: ScanLine,         roles: ["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/entries?tab=in",  label: "IN-Gate Record",   icon: ArrowDownToLine,  roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/entries?tab=out", label: "OUT-Gate Record",  icon: ArrowUpFromLine,  roles: ["ENTRY_GATE_SECURITY", "EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"] },
+  { href: "/admin/records", label: "Admin Register",   icon: FileSpreadsheet,  roles: ["ADMIN"] },
+  { href: "/admin/reports", label: "Reports & Export", icon: DownloadCloud,    roles: ["ADMIN", "SUPERVISOR"] },
+  { href: "/admin/users",   label: "User Management",  icon: Users,            roles: ["ADMIN"] },
+  { href: "/audit",         label: "Audit Trail",      icon: FileClock,        roles: ["SUPERVISOR", "ADMIN"] },
 ];
 
 const roleLabels = {
@@ -95,7 +97,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav className="relative mt-5 flex-1 space-y-1.5 overflow-y-auto px-4" aria-label="Primary navigation">
             {visibleNav.map((item) => {
-              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const [itemPath, itemQuery] = item.href.split("?");
+              const activeExact = pathname === itemPath && (!itemQuery || (typeof window !== "undefined" && window.location.search === `?${itemQuery}`));
+              const activeFuzzy = !itemQuery && item.href !== "/dashboard" && pathname.startsWith(item.href);
+              const active = activeExact || activeFuzzy;
               const Icon = item.icon;
               return <Link key={item.href} href={item.href} className={cn("flex min-h-13 items-center gap-3 rounded-2xl px-4 text-sm font-bold transition", active ? "bg-iocl-orange text-white shadow-lg shadow-orange-950/20" : "text-white/70 hover:bg-white/10 hover:text-white")}><Icon className="h-5 w-5" />{item.label}</Link>;
             })}
