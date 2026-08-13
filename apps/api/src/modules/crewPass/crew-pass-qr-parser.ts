@@ -61,26 +61,50 @@ export function parseCrewPassQr(rawPayload: string) {
   extracted.set("drivingLicenseNumber", getField("dl\\s*(?:no|number)|driving\\s*licen[cs]e\\s*(?:no|number)"));
   extracted.set("drivingLicenseExpiryDate", getField("dl\\s*expiry\\s*(?:date)?|driving\\s*licen[cs]e\\s*expiry\\s*(?:date)?"));
 
+  // Track which fields were missing or unparseable from the QR
+  const missingFields: Array<{ key: FieldKey; label: string }> = [];
+
   let crewId = extracted.get("crewId")!.replace(/\s+/g, "").toUpperCase();
-  if (!/^[A-Z0-9]{6,50}$/.test(crewId)) crewId = "UNK" + crypto.randomBytes(4).toString("hex").toUpperCase();
+  if (!/^[A-Z0-9]{6,50}$/.test(crewId)) {
+    missingFields.push({ key: "crewId", label: "Crew ID" });
+    crewId = "UNK" + crypto.randomBytes(4).toString("hex").toUpperCase();
+  }
 
   let driverName = extracted.get("driverName")!.replace(/\s+/g, " ").trim();
-  if (!/^[\p{L} .'-]{2,120}$/u.test(driverName)) driverName = "UNKNOWN DRIVER";
+  if (!/^[\p{L} .'-]{2,120}$/u.test(driverName)) {
+    missingFields.push({ key: "driverName", label: "Driver Name" });
+    driverName = "UNKNOWN DRIVER";
+  }
 
   let ttNumberOnPass = extracted.get("ttNumberOnPass")!.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  if (!/^[A-Z0-9]{6,15}$/.test(ttNumberOnPass) || !/[A-Z]/.test(ttNumberOnPass) || !/\d/.test(ttNumberOnPass)) ttNumberOnPass = "UNKNOWN1";
+  if (!/^[A-Z0-9]{6,15}$/.test(ttNumberOnPass) || !/[A-Z]/.test(ttNumberOnPass) || !/\d/.test(ttNumberOnPass)) {
+    missingFields.push({ key: "ttNumberOnPass", label: "TT Number on Pass" });
+    ttNumberOnPass = "UNKNOWN1";
+  }
 
   let drivingLicenseNumber = extracted.get("drivingLicenseNumber")!.replace(/\s+/g, "").trim();
-  if (!/^[A-Za-z0-9./_-]{4,40}$/.test(drivingLicenseNumber)) drivingLicenseNumber = "UNKNOWN_DL";
+  if (!/^[A-Za-z0-9./_-]{4,40}$/.test(drivingLicenseNumber)) {
+    missingFields.push({ key: "drivingLicenseNumber", label: "DL Number" });
+    drivingLicenseNumber = "UNKNOWN_DL";
+  }
 
   let crewType: CrewType = CrewType.DRIVER;
-  try { if (extracted.get("crewType")) crewType = mapCrewType(extracted.get("crewType")!); } catch { /* ignore */ }
+  const crewTypeRaw = extracted.get("crewType") ?? "";
+  try { if (crewTypeRaw) crewType = mapCrewType(crewTypeRaw); } catch { /* ignore */ }
 
   let passValidUntil = new Date("2099-12-31T23:59:59Z");
-  try { if (extracted.get("passValidUntil")) passValidUntil = parseStrictDate(extracted.get("passValidUntil")!, "Pass Valid Upto"); } catch { /* ignore */ }
+  const passValidRaw = extracted.get("passValidUntil") ?? "";
+  let passDateMissing = !passValidRaw;
+  try { if (passValidRaw) passValidUntil = parseStrictDate(passValidRaw, "Pass Valid Upto"); }
+  catch { passDateMissing = true; }
+  if (passDateMissing) missingFields.push({ key: "passValidUntil", label: "Pass Valid Upto" });
 
   let drivingLicenseExpiryDate = new Date("2099-12-31T23:59:59Z");
-  try { if (extracted.get("drivingLicenseExpiryDate")) drivingLicenseExpiryDate = parseStrictDate(extracted.get("drivingLicenseExpiryDate")!, "DL Expiry Date"); } catch { /* ignore */ }
+  const dlExpiryRaw = extracted.get("drivingLicenseExpiryDate") ?? "";
+  let dlDateMissing = !dlExpiryRaw;
+  try { if (dlExpiryRaw) drivingLicenseExpiryDate = parseStrictDate(dlExpiryRaw, "DL Expiry Date"); }
+  catch { dlDateMissing = true; }
+  if (dlDateMissing) missingFields.push({ key: "drivingLicenseExpiryDate", label: "DL Expiry Date" });
 
   const displayDate = (date: Date) =>
     `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${date.getUTCFullYear()}`;
@@ -103,5 +127,6 @@ export function parseCrewPassQr(rawPayload: string) {
     drivingLicenseExpiryDate,
     normalizedRawPayload,
     payloadHash: crypto.createHash("sha256").update(normalizedRawPayload, "utf8").digest("hex"),
+    missingFields, // [] means all fields were present; non-empty means user should fill gaps
   };
 }

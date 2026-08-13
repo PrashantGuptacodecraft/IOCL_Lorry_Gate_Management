@@ -99,6 +99,7 @@ export const crewPassSchema = z.object({
   isActive: z.boolean(),
   sourceSystem: z.string().optional(),
   warnings: z.array(z.string()).optional(),
+  missingFields: z.array(z.object({ key: z.string(), label: z.string() })).optional(),
 });
 export type CrewPass = z.infer<typeof crewPassSchema>;
 

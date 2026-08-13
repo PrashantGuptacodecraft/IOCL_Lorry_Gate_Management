@@ -61,6 +61,7 @@ export function EntryWizard() {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [pass, setPass] = useState<CrewPass | null>(null);
+  const [manualOverrides, setManualOverrides] = useState<Record<string, string>>({});
   const [resolving, setResolving] = useState(false);
   const [submitted, setSubmitted] = useState<GateEntryRecord | null>(null);
   const [destinations, setDestinations] = useState<DestinationOption[]>([]);
@@ -93,6 +94,7 @@ export function EntryWizard() {
   async function scan(value: string, method: QrScanMethod = "MANUAL") {
     setResolving(true);
     setPass(null);
+    setManualOverrides({});
     setValue("crewPassId", "", { shouldValidate: false });
     try {
       const resolved = await resolvePass(value);
@@ -101,7 +103,9 @@ export function EntryWizard() {
       setValue("qrScanMethod", method, { shouldValidate: true });
       setValue("actualTankTruckNumber", resolved.ttNumberOnPass, { shouldValidate: true });
       const hasWarnings = (resolved.warnings?.length ?? 0) > 0 || isExpired(resolved.passValidUntil) || isExpired(resolved.drivingLicenseExpiryDate);
-      toast.success(hasWarnings ? "Crew pass scanned with warnings" : "Crew pass scanned successfully");
+      const hasMissing = (resolved.missingFields?.length ?? 0) > 0;
+      if (hasMissing) toast.warning(`${resolved.missingFields!.length} field(s) missing from QR — please fill them in`);
+      else toast.success(hasWarnings ? "Crew pass scanned with warnings" : "Crew pass scanned successfully");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Pass verification failed");
     } finally {
@@ -112,6 +116,11 @@ export function EntryWizard() {
   async function next() {
     if (step === 0) {
       if (!pass) return toast.error("Scan and verify a crew pass first");
+      // Block if any missing fields haven't been filled in
+      const unfilled = (pass.missingFields ?? []).filter(({ key }) => !(manualOverrides[key] ?? "").trim());
+      if (unfilled.length > 0) {
+        return toast.error(`Please fill in: ${unfilled.map((f) => f.label).join(", ")}`);
+      }
       setStep(1);
       return;
     }
@@ -143,7 +152,7 @@ export function EntryWizard() {
 
   function restart() {
     reset(defaultValues);
-    setPass(null); setStep(0); setSubmitted(null);
+    setPass(null); setManualOverrides({}); setStep(0); setSubmitted(null);
   }
 
   const StepIcon = steps[step]!.icon;
@@ -189,7 +198,44 @@ export function EntryWizard() {
         </div></div>
 
         <div className="p-5 sm:p-7">
-          {step === 0 ? <div><QRScanner onDetected={scan} loading={resolving} />{pass ? <PassDetails pass={pass} /> : null}{errors.crewPassId ? <ErrorText>{errors.crewPassId.message}</ErrorText> : null}</div> : null}
+          {step === 0 ? <div>
+            <QRScanner onDetected={scan} loading={resolving} />
+            {pass ? <PassDetails pass={pass} /> : null}
+            {/* Missing fields fill-in panel */}
+            {pass && (pass.missingFields?.length ?? 0) > 0 ? (
+              <div className="mt-4 rounded-3xl border-2 border-amber-300 bg-amber-50 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400 text-white text-sm font-black">{pass.missingFields!.length}</span>
+                  <div>
+                    <p className="font-black text-amber-900">Some fields could not be read from the QR</p>
+                    <p className="text-xs text-amber-700">Fill in the missing information manually before proceeding.</p>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {pass.missingFields!.map(({ key, label }) => (
+                    <label key={key}>
+                      <span className="field-label text-amber-800">{label} <span className="text-red-500">*</span></span>
+                      <input
+                        type={key.includes("Date") || key.includes("Until") ? "text" : "text"}
+                        className="field-input border-amber-300 bg-white focus:border-amber-500"
+                        placeholder={key.includes("Date") || key.includes("Until") ? "DD/MM/YYYY" : `Enter ${label}`}
+                        value={manualOverrides[key] ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setManualOverrides((prev) => ({ ...prev, [key]: val }));
+                          // Apply override immediately back to pass so review step shows updated values
+                          setPass((prev) => prev ? { ...prev, [key]: val } : prev);
+                          // If TT number is filled, also update the form field
+                          if (key === "ttNumberOnPass") setValue("actualTankTruckNumber", val, { shouldValidate: true });
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {errors.crewPassId ? <ErrorText>{errors.crewPassId.message}</ErrorText> : null}
+          </div> : null}
 
           {step === 1 ? <div className="grid gap-5 lg:grid-cols-2">
             <Field label="Customer / Destination" error={errors.customerDestination?.message} className="lg:col-span-2"><input {...register("customerDestination")} className="field-input" placeholder="e.g. VASUGI AGENCIES" list="destination-options" /><datalist id="destination-options">{destinations.map((item) => <option key={item.id} value={item.name}>{item.code}</option>)}</datalist></Field>

@@ -273,11 +273,13 @@ gateEntryRouter.post(
 
 gateEntryRouter.patch(
   "/:id",
-  authorize(UserRole.SUPERVISOR, UserRole.ADMIN),
+  // ENTRY_GATE_SECURITY can edit their OWN open IN entries (today only)
+  // SUPERVISOR/ADMIN can edit any entry — service layer enforces these rules
+  authorize(UserRole.ENTRY_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
   validateParams(idParams),
   validateBody(updateGateEntrySchema),
   asyncHandler(async (req, res) => {
-    const data = await service.updateEntry(res.locals.validatedParams.id, req.body, req.auth!, meta(req));
+    const data = await service.updateEntry(res.locals.validatedParams.id, res.locals.validatedBody, req.auth!, meta(req));
     res.json({ success: true, data, message: "IN entry updated" });
   }),
 );
@@ -299,7 +301,7 @@ gateEntryRouter.patch(
   validateParams(idParams),
   validateBody(updateExitQuantitiesSchema),
   asyncHandler(async (req, res) => {
-    const data = await service.updateExitQuantities(res.locals.validatedParams.id, req.body, req.auth!, meta(req));
+    const data = await service.updateExitQuantities(res.locals.validatedParams.id, res.locals.validatedBody, req.auth!, meta(req));
     res.json({ success: true, data, message: "OUT quantities updated" });
   }),
 );

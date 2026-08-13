@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Clock3,
   Download,
+  LogIn,
+  LogOut,
   Plus,
   RefreshCw,
   Search,
@@ -51,10 +53,10 @@ function EntryRow({ entry }: { entry: GateEntryRecord }) {
   return (
     <Link
       href={`/entries/${entry.id}`}
-      className="group flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 transition hover:border-orange-200 hover:bg-orange-50"
+      className="group flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 transition hover:border-orange-200 hover:bg-orange-50 hover:shadow-sm"
     >
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isIn ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"} transition group-hover:bg-iocl-orange group-hover:text-white`}>
-        <Truck className="h-5 w-5" />
+        {isIn ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-black tracking-wide text-iocl-navy">{entry.actualTankTruckNumber}</p>
@@ -63,6 +65,8 @@ function EntryRow({ entry }: { entry: GateEntryRecord }) {
           <Clock3 className="h-3 w-3" />
           <span>{formatIndiaTime(entry.timeIn)}</span>
           {entry.timeOut ? <><span>→</span><span>{formatIndiaTime(entry.timeOut)}</span></> : null}
+          <span className="ml-1 text-slate-300">·</span>
+          <span>{formatIndiaDate(entry.entryDate)}</span>
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
@@ -75,35 +79,45 @@ function EntryRow({ entry }: { entry: GateEntryRecord }) {
 }
 
 function Panel({
-  title, icon, accentColor, entries, search, onSearch, loading, error, onReload, emptyText,
+  title, subtitle, icon, gradientFrom, gradientTo, borderColor, entries, search, onSearch, loading, error, onReload, emptyText, emptySubtext,
 }: {
-  title: string; icon: React.ReactNode; accentColor: string;
+  title: string; subtitle: string; icon: React.ReactNode;
+  gradientFrom: string; gradientTo: string; borderColor: string;
   entries: GateEntryRecord[]; search: string; onSearch: (v: string) => void;
-  loading: boolean; error: string | null; onReload: () => void; emptyText: string;
+  loading: boolean; error: string | null; onReload: () => void;
+  emptyText: string; emptySubtext: string;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+    <div className={`flex flex-col overflow-hidden rounded-3xl border-2 ${borderColor} bg-white shadow-sm`}>
       {/* Header */}
-      <div className={`flex items-center gap-3 px-5 py-4 ${accentColor}`}>
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white">{icon}</span>
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-white/70">Today</p>
-          <p className="text-base font-black text-white">{title}</p>
+      <div className={`bg-gradient-to-br ${gradientFrom} ${gradientTo} px-5 py-5`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-white shadow-inner">
+              {icon}
+            </span>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-white/70">Today's Records</p>
+              <p className="text-lg font-black text-white leading-tight">{title}</p>
+              <p className="text-xs text-white/60 mt-0.5">{subtitle}</p>
+            </div>
+          </div>
+          <div className="flex h-12 min-w-12 flex-col items-center justify-center rounded-2xl bg-white/20 px-3">
+            <span className="text-xl font-black text-white leading-none">{loading ? "…" : entries.length}</span>
+            <span className="text-[9px] font-bold text-white/60 uppercase">Records</span>
+          </div>
         </div>
-        <span className="ml-auto flex h-8 min-w-8 items-center justify-center rounded-xl bg-white/20 px-2.5 text-sm font-black text-white">
-          {loading ? "…" : entries.length}
-        </span>
       </div>
 
       {/* Search */}
-      <div className="border-b border-slate-200 bg-white px-4 py-3">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             className="field-input py-2.5 pl-10 text-sm"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Truck, driver, destination…"
+            placeholder="Search truck, driver, destination…"
           />
         </div>
       </div>
@@ -117,15 +131,15 @@ function Panel({
       ) : null}
 
       {/* List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3" style={{ maxHeight: "calc(100vh - 320px)", minHeight: "200px" }}>
+      <div className="flex-1 space-y-2 overflow-y-auto p-3" style={{ maxHeight: "calc(100vh - 340px)", minHeight: "200px" }}>
         {loading
-          ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-white" />)
+          ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100" />)
           : entries.length === 0
           ? (
             <div className="flex flex-col items-center justify-center py-14 text-center">
-              <Truck className="h-10 w-10 text-slate-200" />
+              <Truck className="h-12 w-12 text-slate-200" />
               <p className="mt-3 text-sm font-black text-slate-500">{emptyText}</p>
-              <p className="mt-1 text-xs text-slate-400">Records update in real time</p>
+              <p className="mt-1 text-xs text-slate-400">{emptySubtext}</p>
             </div>
           )
           : entries.map((entry) => <EntryRow key={entry.id} entry={entry} />)
@@ -160,7 +174,7 @@ export default function EntriesPage() {
       <PageHeader
         eyebrow="Today's operations"
         title="Gate Records"
-        description="Live view of today's Check-IN and Check-OUT movements. Click any record to view full details."
+        description="Click any record to view full details or edit. IN-Gate records are on the left, OUT-Gate records on the right."
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
             {canExport ? (
@@ -179,25 +193,32 @@ export default function EntriesPage() {
       />
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* CHECK-IN PANEL */}
+        {/* IN-GATE PANEL */}
         <Panel
-          title="Check-IN Records"
-          icon={<ArrowDownToLine className="h-5 w-5" />}
-          accentColor="bg-gradient-to-r from-blue-700 to-blue-500"
+          title="IN-Gate Records"
+          subtitle="Vehicles that have entered the facility"
+          icon={<ArrowDownToLine className="h-6 w-6" />}
+          gradientFrom="from-blue-700"
+          gradientTo="to-blue-500"
+          borderColor="border-blue-200"
           entries={inPanel.entries}
           search={inPanel.search}
           onSearch={inPanel.setSearch}
           loading={inPanel.loading}
           error={inPanel.error}
           onReload={inPanel.reload}
-          emptyText="No vehicles currently checked in"
+          emptyText="No vehicles currently checked IN"
+          emptySubtext="Scan a crew QR to create a new IN entry"
         />
 
-        {/* CHECK-OUT PANEL */}
+        {/* OUT-GATE PANEL */}
         <Panel
-          title="Check-OUT Records"
-          icon={<ArrowUpFromLine className="h-5 w-5" />}
-          accentColor="bg-gradient-to-r from-emerald-700 to-emerald-500"
+          title="OUT-Gate Records"
+          subtitle="Vehicles that have exited with invoice"
+          icon={<ArrowUpFromLine className="h-6 w-6" />}
+          gradientFrom="from-emerald-700"
+          gradientTo="to-emerald-500"
+          borderColor="border-emerald-200"
           entries={outPanel.entries}
           search={outPanel.search}
           onSearch={outPanel.setSearch}
@@ -205,6 +226,7 @@ export default function EntriesPage() {
           error={outPanel.error}
           onReload={outPanel.reload}
           emptyText="No vehicles have exited today"
+          emptySubtext="OUT records appear here after invoice scan"
         />
       </div>
     </div>

@@ -69,19 +69,14 @@ export default function EntryDetailPage() {
           <Data label="TT Number on Pass (locked)" value={entry.ttNumberOnPass} />
           <div><label className="field-label">TT Match (automatic)</label><div className={`flex min-h-13 items-center justify-between rounded-2xl border px-4 ${calculatedMatch ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}><span className="font-black">{calculatedMatch ? "YES — Matched" : "NO — Mismatch"}</span><Badge tone={calculatedMatch ? "green" : "red"}>{calculatedMatch ? "Verified" : "Alert"}</Badge></div></div>
           <EditField label="Customer / Destination" value={String(draft.customerDestination ?? "")} onChange={(value) => setDraft((current) => ({ ...current, customerDestination: value }))} />
-
-          <EditField label="Driver Pass Number" value={String(draft.driverPassNumber ?? "")} onChange={(value) => setDraft((current) => ({ ...current, driverPassNumber: value }))} />
           <Toggle label="ABS" value={draft.abs} onChange={(value) => setDraft((current) => ({ ...current, abs: value }))} />
           <Toggle label="ABT — Driver" value={draft.driverAbt} onChange={(value) => setDraft((current) => ({ ...current, driverAbt: value }))} />
           <EditField label="Helper Name" value={String(draft.helperName ?? "")} onChange={(value) => setDraft((current) => ({ ...current, helperName: value }))} />
-          <EditField label="Helper Pass Number" value={String(draft.helperPassNumber ?? "")} onChange={(value) => setDraft((current) => ({ ...current, helperPassNumber: value }))} />
           <Toggle label="ABT — Helper" value={draft.helperAbt} onChange={(value) => setDraft((current) => ({ ...current, helperAbt: value }))} />
-          <EditField label="Mobile Token" value={String(draft.mobileTokenNumber ?? "")} onChange={(value) => setDraft((current) => ({ ...current, mobileTokenNumber: value }))} />
-          <Toggle label="Driver Confirmation" value={draft.driverSignatureConfirmed} onChange={(value) => setDraft((current) => ({ ...current, driverSignatureConfirmed: value ? true : undefined }))} />
           <div className="sm:col-span-2"><label className="field-label">Remarks</label><textarea className="field-textarea" value={String(draft.remarks ?? "")} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} /></div>
           <div className="sm:col-span-2 flex justify-end gap-2"><Button variant="secondary" onClick={() => { setDraft(toDraft(entry)); setEditing(false); }} icon={<X className="h-4 w-4" />}>Cancel</Button><Button loading={saving} onClick={() => void saveIn()} icon={<Save className="h-4 w-4" />}>Save Changes</Button></div>
         </> : <>
-          <Data label="Actual TT Number" value={entry.actualTankTruckNumber} /><Data label="TT Number on Pass" value={entry.ttNumberOnPass} /><Data label="Customer / Destination" value={entry.customerDestination} /><Data label="Driver Pass" value={entry.driverPassNumber} /><Data label="Driver ABT" value={yesNo(entry.driverAbt)} /><Data label="ABS" value={yesNo(entry.abs)} /><Data label="Helper" value={entry.helperName || "Not provided"} /><Data label="Helper Pass" value={entry.helperPassNumber || "Not provided"} /><Data label="Helper ABT" value={yesNo(entry.helperAbt)} /><Data label="Mobile Token" value={entry.mobileTokenNumber} /><Data label="Driver Confirmation" value={entry.driverSignatureConfirmed ? "CONFIRMED" : "NOT CONFIRMED"} /><Data label="Remarks" value={entry.remarks || "—"} wide />
+          <Data label="Actual TT Number" value={entry.actualTankTruckNumber} /><Data label="TT Number on Pass" value={entry.ttNumberOnPass} /><Data label="Customer / Destination" value={entry.customerDestination} /><Data label="Driver ABT" value={yesNo(entry.driverAbt)} /><Data label="ABS" value={yesNo(entry.abs)} /><Data label="Helper" value={entry.helperName || "Not provided"} /><Data label="Helper ABT" value={yesNo(entry.helperAbt)} /><Data label="Remarks" value={entry.remarks || "—"} wide />
         </>}
       </div></Section>
 
@@ -141,7 +136,7 @@ function toDraft(entry: GateEntryRecord): UpdateGateEntryInput {
     verificationNotes: entry.safetyChecklist.verificationNotes ?? undefined, exceptionRemarks: entry.safetyChecklist.exceptionRemarks,
   };
   for (const { key } of IN_GATE_SAFETY_ITEMS) if (entry.safetyChecklist[key] != null) safetyChecklist[key] = entry.safetyChecklist[key] as boolean;
-  return { expectedVersion: entry.recordVersion, customerDestination: entry.customerDestination, actualTankTruckNumber: entry.actualTankTruckNumber, abs: entry.abs, challanNumber: entry.challanNumber, driverPassNumber: entry.driverPassNumber, driverAbt: entry.driverAbt, helperName: entry.helperName ?? "", helperPassNumber: entry.helperPassNumber ?? "", helperAbt: entry.helperAbt, mobileTokenNumber: entry.mobileTokenNumber, driverSignatureConfirmed: entry.driverSignatureConfirmed ? true : undefined, remarks: entry.remarks ?? "", safetyChecklist };
+  return { expectedVersion: entry.recordVersion, customerDestination: entry.customerDestination, actualTankTruckNumber: entry.actualTankTruckNumber, abs: entry.abs, driverAbt: entry.driverAbt, helperName: entry.helperName ?? "", helperAbt: entry.helperAbt, driverSignatureConfirmed: entry.driverSignatureConfirmed ? true : undefined, remarks: entry.remarks ?? "", safetyChecklist };
 }
 function toQuantities(entry: GateEntryRecord) { return { qtyMs: entry.qtyMs ?? "0", qtyXpms: entry.qtyXpms ?? "0", qtyEbms: entry.qtyEbms ?? "0", qtyHsd: entry.qtyHsd ?? "0", qtySko: entry.qtySko ?? "0", qtyXg: entry.qtyXg ?? "0", qtyBioHsd: entry.qtyBioHsd ?? "0", qtyFo: entry.qtyFo ?? "0", qtyLdo: entry.qtyLdo ?? "0", lockNumber: entry.lockNumber ?? "" }; }
 function setSafety(setDraft: React.Dispatch<React.SetStateAction<UpdateGateEntryInput>>, key: SafetyCheckKey, value: boolean) { setDraft((current) => ({ ...current, safetyChecklist: { ...current.safetyChecklist, [key]: value } })); }

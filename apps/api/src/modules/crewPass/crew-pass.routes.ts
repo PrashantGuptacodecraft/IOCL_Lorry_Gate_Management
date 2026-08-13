@@ -50,6 +50,12 @@ crewPassRouter.use(authenticate, authorize(UserRole.ENTRY_GATE_SECURITY, UserRol
 crewPassRouter.post("/resolve", validateBody(resolveSchema), asyncHandler(async (req, res) => {
   const qrToken = req.body.qrToken as string;
   const rawFormat = looksLikeCrewPassQr(qrToken);
+  let missingFields: Array<{ key: string; label: string }> = [];
+  if (rawFormat) {
+    // Parse first to get missingFields, then upsert
+    const { missingFields: mf } = parseCrewPassQr(qrToken);
+    missingFields = mf;
+  }
   const pass = rawFormat ? await resolveRawQr(qrToken) : await prisma.crewPass.findUnique({ where: { qrToken: qrToken.trim() } });
   if (!pass || !pass.isActive) throw new ApiError(404, "PASS_NOT_FOUND", "Crew pass was not found or is inactive");
   const warnings: string[] = [];
@@ -57,9 +63,12 @@ crewPassRouter.post("/resolve", validateBody(resolveSchema), asyncHandler(async 
   const businessDate = getBusinessDate();
   if (pass.passValidUntil < businessDate) warnings.push("Crew pass has expired");
   if (pass.drivingLicenseExpiryDate < businessDate) warnings.push("Driving licence has expired");
+  if (missingFields.length > 0) warnings.push(`${missingFields.length} field(s) could not be read from the QR — please fill them in manually`);
   res.json({ success: true, data: {
     id: pass.id, qrToken: pass.qrToken, crewId: pass.crewId, driverName: pass.driverName, crewType: pass.crewType,
     passValidUntil: pass.passValidUntil, ttNumberOnPass: pass.ttNumberOnPass, drivingLicenseNumber: pass.drivingLicenseNumber,
-    drivingLicenseExpiryDate: pass.drivingLicenseExpiryDate, isActive: pass.isActive, sourceSystem: pass.sourceSystem, warnings,
+    drivingLicenseExpiryDate: pass.drivingLicenseExpiryDate, isActive: pass.isActive, sourceSystem: pass.sourceSystem,
+    warnings,
+    missingFields, // list of { key, label } for fields the UI should let the operator fill in
   } });
 }));
