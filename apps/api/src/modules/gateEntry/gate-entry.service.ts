@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import {
   AuditAction,
   CrewType,
@@ -192,7 +193,10 @@ function assertCanRead(entry: { businessDate: Date; createdById: string; exitCre
 export async function createEntry(input: CreateGateEntryValue, actor: Actor, meta: RequestMeta) {
   const businessDate = getBusinessDate();
   const actualTruck = normalizeTruck(input.actualTankTruckNumber);
-  const mobileTokenNumber = input.mobileTokenNumber.replace(/\s+/g, "").toUpperCase();
+  // If no real token was provided (field removed from UI), generate a unique placeholder
+  // so the DB unique index never conflicts between entries on the same day
+  const rawToken = input.mobileTokenNumber?.replace(/\s+/g, "").toUpperCase() ?? "-";
+  const mobileTokenNumber = rawToken === "-" || rawToken === "" ? `NTKN-${crypto.randomBytes(6).toString("hex").toUpperCase()}` : rawToken;
 
   if (env.NODE_ENV === "production" && input.qrScanMethod === QrScanMethod.DEMO) {
     throw new ApiError(422, "DEMO_SCAN_DISABLED", "Demo QR scans are disabled in production");
@@ -220,13 +224,7 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
         where: { crewPassId: pass.id, isDeleted: false, businessDate },
         select: { serialNumber: true, businessDate: true, status: true },
       }),
-      // Only check duplicate token if an actual token was provided (not the default placeholder)
-      mobileTokenNumber !== "-"
-        ? tx.gateEntry.findFirst({
-            where: { businessDate, mobileTokenNumber, isDeleted: false },
-            select: { id: true },
-          })
-        : Promise.resolve(null),
+      Promise.resolve(null),
     ]);
     if (openEntry) {
       throw new ApiError(409, "TRUCK_ALREADY_IN", `Truck already entered under ${formatDisplaySerial(openEntry.businessDate, openEntry.serialNumber)}`);
@@ -235,7 +233,7 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
       const alreadyOut = openCrewEntry.status === "OUT";
       throw new ApiError(409, "CREW_ALREADY_IN", `This crew pass has already been used today under ${formatDisplaySerial(openCrewEntry.businessDate, openCrewEntry.serialNumber)}${alreadyOut ? " (checked out)" : ""}. One entry per pass per day is allowed.`);
     }
-    if (tokenUsed) throw new ApiError(409, "DUPLICATE_MOBILE_TOKEN", "This mobile token number is already used today");
+    // tokenUsed check removed — real tokens are enforced by DB unique index; placeholder tokens are unique per entry.
 
     const counter = await tx.dailyCounter.upsert({
       where: { businessDate },
