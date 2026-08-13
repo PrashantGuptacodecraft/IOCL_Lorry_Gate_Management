@@ -66,7 +66,7 @@ export default function AdminRecordsPage() {
     const reason = window.prompt(`Reason for soft deleting all records in ${month}:`);
     if (!reason) return;
     const confirmation = window.prompt('Type DELETE to confirm this recoverable bulk action:');
-    if (confirmation !== "DELETE") return toast.error("Bulk deletion cancelled");
+    if (confirmation?.trim().toUpperCase() !== "DELETE") return toast.error("Bulk deletion cancelled");
     setBusy(true);
     try { const result = await bulkDeleteEntries({ month, reason, confirmation: "DELETE" }); toast.success(`${result.count} record(s) soft deleted`); setReload((value) => value + 1); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Bulk deletion failed"); }
