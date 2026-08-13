@@ -15,7 +15,7 @@ interface Summary { total: number; in: number; out: number; cancelled: number; q
 const PAGE_SIZE = 50;
 
 export default function AdminRecordsPage() {
-  const [date, setDate] = useState(todayIndiaKey());
+  const [date, setDate] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<EntryStatus | "">("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -32,8 +32,8 @@ export default function AdminRecordsPage() {
     setLoading(true);
     try {
       const [records, totals] = await Promise.all([
-        listEntries({ date, search: search || undefined, status: status || undefined, includeDeleted, page, pageSize: PAGE_SIZE }),
-        getReportSummary(date),
+        listEntries({ date: date || undefined, search: search || undefined, status: status || undefined, includeDeleted, page, pageSize: PAGE_SIZE }),
+        date ? getReportSummary(date) : Promise.resolve({ total: 0, in: 0, out: 0, cancelled: 0, quantities: { petrol: "0", diesel: "0", fo: "0", ldo: "0" } } as any),
       ]);
       setItems(records.items); setTotal(records.total); setTotalPages(records.totalPages); setSummary(totals);
     } catch (error) { toast.error(error instanceof Error ? error.message : "Admin register could not be loaded"); }

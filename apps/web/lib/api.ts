@@ -267,5 +267,5 @@ export async function getReportSummary(date: string) {
       quantities: summary.quantities,
     };
   }
-  return request<{ date: string; total: number; in: number; out: number; cancelled: number; quantities: DashboardSummary["quantities"] }>(`/gate-entries/summary?date=${encodeURIComponent(date)}`);
+  return request<{ date: string; total: number; in: number; out: number; cancelled: number; quantities: DashboardSummary["quantities"] }>(`/reports/summary?date=${encodeURIComponent(date)}`);
 }

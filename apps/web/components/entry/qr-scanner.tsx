@@ -125,65 +125,6 @@ export function QRScanner({
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-iocl-orange shadow-sm">
-              <Keyboard className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-black text-iocl-navy">Scanner / manual fallback</h3>
-              <p className="text-xs text-slate-500">Works with USB and Bluetooth QR scanners</p>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 rounded-2xl bg-slate-200/70 p-1">
-            <button
-              type="button"
-              onClick={() => setInputMethod("HARDWARE_SCANNER")}
-              className={`flex min-h-10 items-center justify-center gap-2 rounded-xl text-xs font-black ${
-                inputMethod === "HARDWARE_SCANNER" ? "bg-white text-iocl-navy shadow-sm" : "text-slate-500"
-              }`}
-            >
-              <Usb className="h-4 w-4" /> Hardware scanner
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMethod("MANUAL")}
-              className={`min-h-10 rounded-xl text-xs font-black ${
-                inputMethod === "MANUAL" ? "bg-white text-iocl-navy shadow-sm" : "text-slate-500"
-              }`}
-            >
-              Manual entry
-            </button>
-          </div>
-
-          <label className="field-label mt-5" htmlFor="manualQr">QR payload</label>
-          <textarea
-            id="manualQr"
-            className="field-textarea font-mono text-xs min-h-24"
-            value={manual}
-            onChange={(event) => setManual(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submitManual();
-              }
-            }}
-            placeholder="Paste multiline QR payload here..."
-            autoComplete="off"
-            autoFocus
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={submitManual}
-            loading={loading}
-            className="mt-3 w-full"
-            icon={<ScanLine className="h-5 w-5" />}
-          >
-            Verify Pass
-          </Button>
-        </div>
 
         {DEMO_MODE ? (
           <button

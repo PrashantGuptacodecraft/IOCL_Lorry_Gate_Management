@@ -88,7 +88,7 @@ function dateWhere(filter: EntryFilter, actor: Actor): Prisma.GateEntryWhereInpu
       },
     };
   }
-  return { businessDate: getBusinessDate() };
+  return {};
 }
 
 function roleVisibility(actor: Actor, filter: EntryFilter): Prisma.GateEntryWhereInput | undefined {
