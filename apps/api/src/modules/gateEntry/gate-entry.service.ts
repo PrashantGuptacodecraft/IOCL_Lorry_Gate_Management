@@ -220,10 +220,13 @@ export async function createEntry(input: CreateGateEntryValue, actor: Actor, met
         where: { crewPassId: pass.id, isDeleted: false, businessDate },
         select: { serialNumber: true, businessDate: true, status: true },
       }),
-      tx.gateEntry.findFirst({
-        where: { businessDate, mobileTokenNumber, isDeleted: false },
-        select: { id: true },
-      }),
+      // Only check duplicate token if an actual token was provided (not the default placeholder)
+      mobileTokenNumber !== "-"
+        ? tx.gateEntry.findFirst({
+            where: { businessDate, mobileTokenNumber, isDeleted: false },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
     ]);
     if (openEntry) {
       throw new ApiError(409, "TRUCK_ALREADY_IN", `Truck already entered under ${formatDisplaySerial(openEntry.businessDate, openEntry.serialNumber)}`);
