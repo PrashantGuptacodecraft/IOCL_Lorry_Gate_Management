@@ -428,15 +428,21 @@ export async function updateEntry(id: string, input: UpdateGateEntryInput, actor
 
 export async function resolveInvoice(rawInvoiceQr: string) {
   const invoice = parseInvoiceQr(rawInvoiceQr);
-  const duplicate = await prisma.gateEntry.findFirst({ where: { invoiceNumber: invoice.invoiceNumber }, select: { id: true } });
-  if (duplicate) throw new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been submitted");
 
+  // Find today's open entry for this truck first
   const entry = await prisma.gateEntry.findFirst({
     where: { businessDate: getBusinessDate(), actualTankTruckNumber: invoice.vehicleNumber, status: EntryStatus.IN, isDeleted: false },
     include: includeEntry,
     orderBy: { timeIn: "desc" },
   });
   if (!entry) throw new ApiError(404, "NO_DATA_FOUND", "No open IN record was found today for the invoice vehicle");
+
+  // Block only if invoice is already used on a DIFFERENT entry (not today's open one for this truck)
+  const duplicate = await prisma.gateEntry.findFirst({
+    where: { invoiceNumber: invoice.invoiceNumber, id: { not: entry.id }, isDeleted: false },
+    select: { id: true },
+  });
+  if (duplicate) throw new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been submitted on a different entry");
 
   const warnings: string[] = [];
   const today = getBusinessDate();
@@ -474,8 +480,9 @@ export async function submitExit(id: string, input: SubmitExitInput, actor: Acto
     if (normalizeTruck(before.actualTankTruckNumber) !== invoice.vehicleNumber) {
       throw new ApiError(422, "INVOICE_VEHICLE_MISMATCH", "Invoice vehicle does not match the open physical tank truck number");
     }
-    const duplicate = await tx.gateEntry.findFirst({ where: { invoiceNumber: invoice.invoiceNumber }, select: { id: true } });
-    if (duplicate) throw new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been submitted");
+    // Only block if this invoice number is used on a DIFFERENT entry (not the one we are currently exiting)
+    const duplicate = await tx.gateEntry.findFirst({ where: { invoiceNumber: invoice.invoiceNumber, id: { not: id }, isDeleted: false }, select: { id: true } });
+    if (duplicate) throw new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been submitted on a different entry");
 
     const today = getBusinessDate();
     const hasExpiryWarning = before.passValidUntil < today || before.drivingLicenseExpiryDate < today;
