@@ -202,7 +202,7 @@ model GateEntry {
   qtyFo                    Decimal?        @db.Decimal(14, 3)
   qtyLdo                   Decimal?        @db.Decimal(14, 3)
   lockNumber               String?         @db.VarChar(50)
-  invoiceNumber            String?         @unique @db.VarChar(60)
+  invoiceNumber            String?         @db.VarChar(60)
   invoiceDate              DateTime?       @db.Date
   invoiceValue             Decimal?        @db.Decimal(16, 2)
   invoiceVehicle           String?         @db.VarChar(20)

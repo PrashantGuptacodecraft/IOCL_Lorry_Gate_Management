@@ -15,8 +15,8 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
         normalized = new ApiError(409, "TRUCK_ALREADY_IN", "This tank truck already has an open IN entry");
       } else if (target.includes("one_open_crew_pass") || target.includes("crewPassId")) {
         normalized = new ApiError(409, "CREW_ALREADY_IN", "This crew pass already has an open IN entry");
-      } else if (target.includes("invoiceNumber") || target.includes("invoice_number")) {
-        normalized = new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been submitted");
+      } else if (target.includes("invoiceNumber") || target.includes("invoice_number") || target.includes("invoice_per_day")) {
+        normalized = new ApiError(409, "DUPLICATE_INVOICE", "This invoice number has already been used for another exit today");
       } else {
         normalized = new ApiError(409, "DUPLICATE_RECORD", "A conflicting record already exists");
       }
