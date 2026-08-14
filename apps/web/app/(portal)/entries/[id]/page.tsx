@@ -20,7 +20,6 @@ export default function EntryDetailPage() {
   const [loadError, setLoadError] = useState("");
   const [loadVersion, setLoadVersion] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [editingQuantities, setEditingQuantities] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<UpdateGateEntryInput>({ expectedVersion: 1, remarks: "" });
   const [quantities, setQuantities] = useState({ qtyMs: "0", qtyXpms: "0", qtyEbms: "0", qtyHsd: "0", qtySko: "0", qtyXg: "0", qtyBioHsd: "0", qtyFo: "0", qtyLdo: "0", lockNumber: "" });
@@ -46,20 +45,23 @@ export default function EntryDetailPage() {
   const draftTruck = String(draft.actualTankTruckNumber ?? entry?.actualTankTruckNumber ?? "");
   const calculatedMatch = useMemo(() => entry ? normalizeTruck(entry.ttNumberOnPass) === normalizeTruck(draftTruck) : false, [entry, draftTruck]);
 
-  async function saveIn() {
+  async function saveChanges() {
     if (!entry) return; setSaving(true);
-    try { const updated = await updateEntry(entry.id, draft); setEntry(updated); setDraft(toDraft(updated)); setEditing(false); toast.success("IN entry updated and audited"); }
+    try {
+      let updated = await updateEntry(entry.id, draft);
+      if (entry.status === "OUT" && canEditOut) {
+        const parsed = Object.fromEntries(Object.entries(quantities).map(([key, value]) => [key, key === "lockNumber" ? value : Number(value)])) as any;
+        const numericValues = Object.entries(parsed).filter(([key]) => key !== "lockNumber").map(([, value]) => value as number);
+        if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) throw new Error("Enter valid non-negative quantities");
+        updated = await updateExitQuantities(entry.id, { expectedVersion: updated.recordVersion, ...parsed });
+      }
+      setEntry(updated);
+      setDraft(toDraft(updated));
+      setQuantities(toQuantities(updated));
+      setEditing(false);
+      toast.success("Record updated successfully");
+    }
     catch (error) { toast.error(error instanceof Error ? error.message : "Update failed"); }
-    finally { setSaving(false); }
-  }
-  async function saveQuantities() {
-    if (!entry) return;
-    const parsed = Object.fromEntries(Object.entries(quantities).map(([key, value]) => [key, key === "lockNumber" ? value : Number(value)])) as any;
-    const numericValues = Object.entries(parsed).filter(([key]) => key !== "lockNumber").map(([, value]) => value as number);
-    if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) return toast.error("Enter valid non-negative quantities");
-    setSaving(true);
-    try { const updated = await updateExitQuantities(entry.id, { expectedVersion: entry.recordVersion, ...parsed }); setEntry(updated); setQuantities(toQuantities(updated)); setEditingQuantities(false); toast.success("OUT quantities corrected and audited"); }
-    catch (error) { toast.error(error instanceof Error ? error.message : "Quantity update failed"); }
     finally { setSaving(false); }
   }
 
@@ -67,7 +69,7 @@ export default function EntryDetailPage() {
   if (!entry) return <div className="panel h-80 animate-pulse bg-white" />;
 
   return <div>
-    <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><Link href="/entries" className="mb-3 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-iocl-orange"><ArrowLeft className="h-4 w-4" />Back to records</Link><div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl font-black text-iocl-navy sm:text-3xl">{entry.displaySerial}</h1><Badge tone={entry.status === "IN" ? "blue" : entry.status === "OUT" ? "green" : "slate"}>{entry.status}</Badge><Badge tone={entry.ttNumberMatch ? "green" : "red"}>{entry.ttNumberMatch ? "TT Matched" : "TT Mismatch"}</Badge></div><p className="mt-2 text-sm text-slate-500">Created by {entry.createdBy.name} ({entry.createdBy.employeeCode})</p></div><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => window.print()} icon={<Printer className="h-4 w-4" />}>Print</Button>{canEditOperational && !editing ? <Button onClick={() => setEditing(true)} icon={<Edit3 className="h-4 w-4" />}>{entry.status === "IN" ? "Edit Open IN" : user?.role === "ADMIN" ? "Admin Correct Record" : "Correct Record"}</Button> : null}{canEditOut && !editingQuantities ? <Button onClick={() => setEditingQuantities(true)} icon={<Edit3 className="h-4 w-4" />}>Correct Quantities</Button> : null}</div></div>
+    <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><Link href="/entries" className="mb-3 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-iocl-orange"><ArrowLeft className="h-4 w-4" />Back to records</Link><div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl font-black text-iocl-navy sm:text-3xl">{entry.displaySerial}</h1><Badge tone={entry.status === "IN" ? "blue" : entry.status === "OUT" ? "green" : "slate"}>{entry.status}</Badge><Badge tone={entry.ttNumberMatch ? "green" : "red"}>{entry.ttNumberMatch ? "TT Matched" : "TT Mismatch"}</Badge></div><p className="mt-2 text-sm text-slate-500">Created by {entry.createdBy.name} ({entry.createdBy.employeeCode})</p></div><div className="flex flex-wrap gap-2">{editing ? <><Button variant="secondary" onClick={() => { setDraft(toDraft(entry)); setQuantities(toQuantities(entry)); setEditing(false); }} icon={<X className="h-4 w-4" />}>Cancel</Button><Button loading={saving} onClick={() => void saveChanges()} icon={<Save className="h-4 w-4" />}>Save All</Button></> : <><Button variant="secondary" onClick={() => window.print()} icon={<Printer className="h-4 w-4" />}>Print</Button>{canEditOperational ? <Button onClick={() => setEditing(true)} icon={<Edit3 className="h-4 w-4" />}>{entry.status === "IN" ? "Edit Open IN" : user?.role === "ADMIN" ? "Admin Correct Record" : "Correct Record"}</Button> : null}</>}</div></div>
 
     {entry.status !== "IN" && !canEditOperational ? <div className="mb-5 flex gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-4 text-sm text-slate-700"><FileLock2 className="h-5 w-5 shrink-0" /><div><p className="font-black">Security editing is locked after exit</p><p className="mt-1 text-xs">OUT quantity corrections remain role-controlled. Administrators may make audited operational corrections without changing the immutable QR snapshot.</p></div></div> : null}
 
@@ -83,7 +85,6 @@ export default function EntryDetailPage() {
           <EditField label="Helper Name" value={String(draft.helperName ?? "")} onChange={(value) => setDraft((current) => ({ ...current, helperName: value }))} />
           <Toggle label="ABT — Helper" value={draft.helperAbt} onChange={(value) => setDraft((current) => ({ ...current, helperAbt: value }))} />
           <div className="sm:col-span-2"><label className="field-label">Remarks</label><textarea className="field-textarea" value={String(draft.remarks ?? "")} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} /></div>
-          <div className="sm:col-span-2 flex justify-end gap-2"><Button variant="secondary" onClick={() => { setDraft(toDraft(entry)); setEditing(false); }} icon={<X className="h-4 w-4" />}>Cancel</Button><Button loading={saving} onClick={() => void saveIn()} icon={<Save className="h-4 w-4" />}>Save Changes</Button></div>
         </> : <>
           <Data label="Actual TT Number" value={entry.actualTankTruckNumber} /><Data label="TT Number on Pass" value={entry.ttNumberOnPass} /><Data label="Customer / Destination" value={entry.customerDestination} /><Data label="Driver ABT" value={yesNo(entry.driverAbt)} /><Data label="ABS" value={yesNo(entry.abs)} /><Data label="Helper" value={entry.helperName || "Not provided"} /><Data label="Helper ABT" value={yesNo(entry.helperAbt)} /><Data label="Remarks" value={entry.remarks || "—"} wide />
         </>}
@@ -102,7 +103,7 @@ export default function EntryDetailPage() {
             <Data label="Invoice Vehicle" value={entry.invoiceVehicle ?? "—"} />
             <Data label="Consignee" value={entry.invoiceConsignee ?? "—"} />
             <Data label="Product / Quantity Raw" value={entry.invoiceProductsRaw ?? "—"} wide />
-            {editingQuantities ? (
+            {editing ? (
               <>
                 {([[
                   "qtyMs", "MS",
@@ -110,10 +111,6 @@ export default function EntryDetailPage() {
                   <EditField key={key} label={`${label} Quantity`} value={quantities[key]} onChange={(value) => setQuantities((current) => ({ ...current, [key]: value }))} />
                 ))}
                 <EditField label="Lock Number" value={quantities.lockNumber} onChange={(value) => setQuantities((current) => ({ ...current, lockNumber: value }))} />
-                <div className="sm:col-span-2 flex justify-end gap-2">
-                  <Button variant="secondary" onClick={() => { setQuantities(toQuantities(entry)); setEditingQuantities(false); }}>Cancel</Button>
-                  <Button loading={saving} onClick={() => void saveQuantities()} icon={<Save className="h-4 w-4" />}>Save Quantities</Button>
-                </div>
               </>
             ) : (
               <>
@@ -132,6 +129,8 @@ export default function EntryDetailPage() {
           </div>
         </Section>
       ) : null}
+      
+      {editing ? <div className="mt-6 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><Button variant="secondary" onClick={() => { setDraft(toDraft(entry)); setQuantities(toQuantities(entry)); setEditing(false); }} icon={<X className="h-4 w-4" />}>Cancel</Button><Button loading={saving} onClick={() => void saveChanges()} icon={<Save className="h-4 w-4" />}>Save All Changes</Button></div> : null}
     </div>
 
     <div className="space-y-6"><Section title="Crew pass snapshot (immutable)" icon={<UserRound className="h-5 w-5" />}><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><Data label="Crew ID" value={entry.crewId} /><Data label="Driver Name" value={entry.driverName} /><Data label="Crew Type" value={entry.crewType.replaceAll("_", " ")} /><Data label="Pass Valid Until" value={formatIndiaDate(entry.passValidUntil)} /><Data label="Driving Licence" value={entry.drivingLicenseNumber} /><Data label="Licence Expiry" value={formatIndiaDate(entry.drivingLicenseExpiryDate)} /></div></Section><Section title="System timeline" icon={<CalendarDays className="h-5 w-5" />}><div className="space-y-3"><Timeline icon={<CheckCircle2 className="h-4 w-4" />} label="Serial" value={entry.displaySerial} /><Timeline icon={<CalendarDays className="h-4 w-4" />} label="Entry date" value={formatIndiaDate(entry.entryDate)} /><Timeline icon={<Clock3 className="h-4 w-4" />} label="Time IN" value={formatIndiaTime(entry.timeIn)} />{entry.timeOut ? <Timeline icon={<Clock3 className="h-4 w-4" />} label="Time OUT" value={formatIndiaTime(entry.timeOut)} /> : null}<Timeline icon={<ShieldCheck className="h-4 w-4" />} label="Status" value={entry.status} /><Timeline icon={<Truck className="h-4 w-4" />} label="Facility / Gate" value={`${entry.facilityCode} · ${entry.gateCode}`} /><Timeline icon={<Edit3 className="h-4 w-4" />} label="Record version" value={String(entry.recordVersion)} /></div></Section></div></div>

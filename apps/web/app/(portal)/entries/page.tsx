@@ -153,8 +153,6 @@ function Panel({
 
 export default function EntriesPage() {
   const { user } = useAuth();
-  const canExport = user?.role === "SUPERVISOR" || user?.role === "ADMIN";
-  const [exporting, setExporting] = useState(false);
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab"); // "in" | "out" | null
   const inRef = useRef<HTMLDivElement>(null);
@@ -169,18 +167,6 @@ export default function EntriesPage() {
   const inPanel = useEntriesPanel(); // no status filter = shows both IN and OUT
   const outPanel = useEntriesPanel("OUT");
 
-  async function exportCsv() {
-    setExporting(true);
-    try {
-      await downloadCsv({});
-      toast.success("CSV export downloaded");
-    } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "CSV export failed");
-    } finally {
-      setExporting(false);
-    }
-  }
-
   return (
     <div>
       <PageHeader
@@ -189,13 +175,6 @@ export default function EntriesPage() {
         description={tab === "in" ? "Vehicles currently inside the facility. Click any record to view details or edit." : tab === "out" ? "Vehicles that have completed the exit process. Click any record to view full details." : "Click any record to view full details or edit."}
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
-            {canExport ? (
-              <Button type="button" variant="secondary" loading={exporting} disabled={DEMO_MODE}
-                title={DEMO_MODE ? "CSV export is enabled in the connected production build" : undefined}
-                onClick={() => void exportCsv()} icon={<Download className="h-5 w-5" />}>
-                Export CSV
-              </Button>
-            ) : null}
             {user?.role !== "EXIT_GATE_SECURITY"
               ? <Link href="/entries/new"><Button icon={<ScanLine className="h-5 w-5" />}>IN Scanner</Button></Link>
               : <Link href="/out"><Button icon={<Truck className="h-5 w-5" />}>Process Vehicle OUT</Button></Link>

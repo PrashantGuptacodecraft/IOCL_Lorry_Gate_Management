@@ -202,28 +202,28 @@ gateEntryRouter.get(
       sheet.addRow({
         slNo: entry.serialNumber,
         truckNo: entry.actualTankTruckNumber,
-        abs: entry.abs ? "YES" : "NO",
+        abs: chk(entry.abs),
         tlfNo: entry.challanNumber || "",
         scanMethod: entry.qrScanMethod === "MANUAL" ? "MANUAL" : "PROXI-CARD",
         timeIn: formatTime(entry.timeIn),
-        isiDcp: chk(s.is1x10kgDcp),
-        dlEndorsed: chk(s.isDrivingLicenseEndorsed),
-        helperAvail: chk(s.isHelperAvailable),
-        ppe: chk(s.isPpeWorn),
-        rubberHose: chk(s.isRubberHoseAvailable),
-        sparkArrester: chk(s.isSparkArresterWelded),
-        termCard: chk(s.isTermCardAvailable),
-        selfStarter: chk(s.isSelfStarterWorking),
-        batteryCover: chk(s.isBatteryCoverProvided),
-        noContainers: chk(s.isNoCabinContainers),
-        batteryCutoff: chk(s.isBatteryCutOffWorking),
-        handBrake: chk(s.isHandBrakeWorking),
-        earthCleat: chk(s.isEarthCleatProvided),
-        vmuSwitch: chk(s.isVmuSwitchOff),
+        isiDcp: chk(s.verifyRegisterColumn1),
+        dlEndorsed: chk(s.drivingLicenseValidCmvRule9),
+        helperAvail: chk(!!entry.helperName),
+        ppe: chk(s.ppeAvailable),
+        rubberHose: chk(s.rubberHoseCumLockCouplingGttMarked),
+        sparkArrester: chk(s.sparkArrestorCcoeApproved),
+        termCard: chk(s.tremCardAndTrainingCardAvailable),
+        selfStarter: chk(s.selfStarterWorking),
+        batteryCover: chk(s.batteryTerminalRubberCovers),
+        noContainers: chk(s.noContainerCanExplosivesInCabin),
+        batteryCutoff: chk(s.batteryCutOffSwitchCondition),
+        handBrake: chk(s.handBrakeWorking),
+        earthCleat: chk(s.earthCleatProvided),
+        vmuSwitch: chk(s.vmuWorking),
         driverInfo: `${entry.driverName} (${entry.driverPassNumber || entry.crewId})`,
-        driverAbt: entry.driverAbt ? "YES" : "NO",
+        driverAbt: chk(entry.driverAbt),
         helperInfo: entry.helperName ? `${entry.helperName} (${entry.helperPassNumber || ""})` : "N/A",
-        helperAbt: entry.helperAbt ? "YES" : "NO",
+        helperAbt: chk(entry.helperAbt),
         timeOut: formatTime(entry.timeOut),
         ms: entry.qtyMs ? Number(entry.qtyMs) : null,
         xp95: entry.qtyXpms ? Number(entry.qtyXpms) : null,
@@ -304,6 +304,17 @@ gateEntryRouter.post(
 );
 
 gateEntryRouter.patch(
+  "/:id/exit-quantities",
+  authorize(UserRole.EXIT_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
+  validateParams(idParams),
+  validateBody(updateExitQuantitiesSchema),
+  asyncHandler(async (req, res) => {
+    const data = await service.updateExitQuantities(res.locals.validatedParams.id, res.locals.validatedBody, req.auth!, meta(req));
+    res.json({ success: true, data, message: "OUT quantities updated" });
+  }),
+);
+
+gateEntryRouter.patch(
   "/:id",
   // ENTRY_GATE_SECURITY can edit their OWN open IN entries (today only)
   // SUPERVISOR/ADMIN can edit any entry — service layer enforces these rules
@@ -322,19 +333,8 @@ gateEntryRouter.post(
   validateParams(idParams),
   validateBody(submitExitSchema),
   asyncHandler(async (req, res) => {
-    const data = await service.submitExit(res.locals.validatedParams.id, req.body, req.auth!, meta(req));
+    const data = await service.submitExit(res.locals.validatedParams.id, res.locals.validatedBody, req.auth!, meta(req));
     res.json({ success: true, data, message: "Vehicle OUT completed and entry locked" });
-  }),
-);
-
-gateEntryRouter.patch(
-  "/:id/exit-quantities",
-  authorize(UserRole.EXIT_GATE_SECURITY, UserRole.SUPERVISOR, UserRole.ADMIN),
-  validateParams(idParams),
-  validateBody(updateExitQuantitiesSchema),
-  asyncHandler(async (req, res) => {
-    const data = await service.updateExitQuantities(res.locals.validatedParams.id, res.locals.validatedBody, req.auth!, meta(req));
-    res.json({ success: true, data, message: "OUT quantities updated" });
   }),
 );
 

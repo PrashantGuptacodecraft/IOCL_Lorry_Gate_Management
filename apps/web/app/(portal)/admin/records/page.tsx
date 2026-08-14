@@ -73,9 +73,9 @@ export default function AdminRecordsPage() {
     finally { setBusy(false); }
   }
 
-  async function exportFile(kind: "excel" | "csv") {
+  async function exportFile() {
     setBusy(true);
-    try { if (kind === "excel") await downloadExcel(date); else await downloadCsv({ date, search: search || undefined, status: status || undefined, page: 1, pageSize: 100 }); toast.success(`${kind.toUpperCase()} downloaded`); }
+    try { await downloadExcel(date); toast.success("Excel downloaded"); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Export failed"); }
     finally { setBusy(false); }
   }
@@ -86,7 +86,7 @@ export default function AdminRecordsPage() {
   ];
 
   return <div>
-    <PageHeader eyebrow="Administrator · Full history" title="Tank Truck Gate Register" description="Review any day, export the physical-register layout, make audited record corrections, and perform recoverable soft deletion." action={<div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" disabled={busy} onClick={() => void exportFile("csv")} icon={<Download className="h-4 w-4" />}>CSV</Button><Button type="button" disabled={busy} onClick={() => void exportFile("excel")} icon={<FileSpreadsheet className="h-4 w-4" />}>Download Excel</Button></div>} />
+    <PageHeader eyebrow="Administrator · Full history" title="Tank Truck Gate Register" description="Review any day, export the physical-register layout, make audited record corrections, and perform recoverable soft deletion." action={<div className="flex flex-wrap gap-2"><Button type="button" disabled={busy} onClick={() => void exportFile()} icon={<FileSpreadsheet className="h-4 w-4" />}>Download Excel</Button></div>} />
 
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{cards.map(([label,value]) => <div key={String(label)} className="panel p-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-3 text-3xl font-black text-iocl-navy">{loading ? "—" : String(value)}</p></div>)}</section>
 
