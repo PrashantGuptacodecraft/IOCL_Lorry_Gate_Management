@@ -10,17 +10,15 @@ import {
   ArrowUpFromLine,
   ChevronRight,
   Clock3,
-  Download,
   LogIn,
   LogOut,
-  Plus,
   RefreshCw,
   ScanLine,
   Search,
   Truck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DEMO_MODE, downloadCsv, listEntries } from "../../../lib/api";
+import { listEntries } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-context";
 import { formatIndiaDate, formatIndiaTime } from "../../../lib/utils";
 import { Badge } from "../../../components/ui/badge";

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { EntryStatus, GateEntryRecord, QuantitySummary } from "@iocl/shared";
-import { CalendarDays, ChevronLeft, ChevronRight, Download, FileSpreadsheet, RefreshCw, RotateCcw, Search, Trash2, Truck } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, FileSpreadsheet, RefreshCw, RotateCcw, Search, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
-import { bulkDeleteEntries, downloadCsv, downloadExcel, getReportSummary, listEntries, restoreEntry, softDeleteEntry } from "../../../../lib/api";
+import { bulkDeleteEntries, downloadExcel, getReportSummary, listEntries, restoreEntry, softDeleteEntry } from "../../../../lib/api";
 import { formatIndiaTime, todayIndiaKey } from "../../../../lib/utils";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";

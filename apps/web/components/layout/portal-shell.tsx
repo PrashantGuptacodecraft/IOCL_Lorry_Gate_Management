@@ -74,7 +74,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       (pathname === "/dashboard" && !["SUPERVISOR", "ADMIN"].includes(user.role)) ||
       (pathname.startsWith("/entries/new") && !["ENTRY_GATE_SECURITY", "SUPERVISOR", "ADMIN"].includes(user.role)) ||
       (pathname.startsWith("/out") && !["EXIT_GATE_SECURITY", "SUPERVISOR", "ADMIN"].includes(user.role)) ||
-      (pathname.startsWith("/admin") && user.role !== "ADMIN") ||
+      (pathname.startsWith("/admin") && user.role !== "ADMIN" && !(pathname.startsWith("/admin/reports") && user.role === "SUPERVISOR")) ||
       (pathname.startsWith("/audit") && !["SUPERVISOR", "ADMIN"].includes(user.role));
     if (restricted) router.replace("/unauthorized");
   }, [pathname, router, user]);
